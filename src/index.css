@@ -1,0 +1,209 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Gift for a Cause Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    /* Brand Colors - HSL only */
+    --background: 0 0% 98%;
+    --foreground: 210 11% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 11% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 11% 15%;
+
+    /* Warm Coral - Primary brand color */
+    --primary: 4 82% 69%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 4 85% 75%;
+
+    /* Deep Teal - Trust & stability */
+    --secondary: 183 72% 30%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-light: 183 50% 85%;
+
+    /* Golden Yellow - Celebration */
+    --accent: 45 100% 62%;
+    --accent-foreground: 45 15% 20%;
+    --accent-light: 45 100% 90%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 4 82% 69%;
+
+    --success: 120 60% 50%;
+    --success-foreground: 0 0% 100%;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+    --gradient-celebration: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--primary-glow)) 100%);
+    --gradient-trust: linear-gradient(180deg, hsl(var(--secondary-light)) 0%, hsl(var(--card)) 100%);
+
+    /* Shadows */
+    --shadow-soft: 0 2px 20px hsl(var(--primary) / 0.1);
+    --shadow-medium: 0 8px 30px hsl(var(--primary) / 0.15);
+    --shadow-strong: 0 20px 60px hsl(var(--primary) / 0.2);
+    --shadow-glow: 0 0 30px hsl(var(--accent) / 0.3);
+
+    --radius: 1rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 210 11% 7%;
+    --foreground: 0 0% 98%;
+
+    --card: 210 11% 10%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 210 11% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Dark mode brand colors */
+    --primary: 4 82% 69%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 4 85% 75%;
+
+    --secondary: 183 72% 40%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-light: 183 30% 20%;
+
+    --accent: 45 100% 62%;
+    --accent-foreground: 45 15% 10%;
+    --accent-light: 45 80% 15%;
+
+    --muted: 210 11% 15%;
+    --muted-foreground: 215 16% 65%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 11% 20%;
+    --input: 210 11% 20%;
+    --ring: 4 82% 69%;
+
+    --success: 120 60% 50%;
+    --success-foreground: 0 0% 100%;
+
+    /* Dark mode gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+    --gradient-celebration: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--primary-glow)) 100%);
+    --gradient-trust: linear-gradient(180deg, hsl(var(--secondary-light)) 0%, hsl(var(--card)) 100%);
+
+    /* Dark mode shadows */
+    --shadow-soft: 0 2px 20px hsl(0 0% 0% / 0.3);
+    --shadow-medium: 0 8px 30px hsl(0 0% 0% / 0.4);
+    --shadow-strong: 0 20px 60px hsl(0 0% 0% / 0.5);
+    --shadow-glow: 0 0 30px hsl(var(--accent) / 0.4);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+  }
+}
+
+@layer components {
+  /* Hero gradient backgrounds */
+  .hero-gradient {
+    background: var(--gradient-hero);
+  }
+
+  .celebration-gradient {
+    background: var(--gradient-celebration);
+  }
+
+  .trust-gradient {
+    background: var(--gradient-trust);
+  }
+
+  /* Custom shadows */
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-medium {
+    box-shadow: var(--shadow-medium);
+  }
+
+  .shadow-strong {
+    box-shadow: var(--shadow-strong);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Animated elements */
+  .hover-lift {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .hover-lift:hover {
+    @apply transform -translate-y-1 shadow-medium;
+  }
+
+  .confetti-burst {
+    @apply animate-pulse;
+  }
+
+  /* Custom carousel styles */
+  .carousel-infinite {
+    @apply overflow-hidden relative;
+  }
+
+  /* Trust indicators */
+  .trust-badge {
+    @apply inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 text-secondary font-medium text-sm;
+  }
+
+  /* Impact counter animations */
+  .counter-animate {
+    @apply transition-all duration-500 ease-out;
+  }
+}
