@@ -1,34 +1,23 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-anon-key'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Check if using placeholder values
-const isUsingPlaceholders = supabaseUrl.includes('your-project') || 
-                           supabaseUrl.includes('placeholder') || 
-                           supabaseAnonKey.includes('your-anon-key') || 
-                           supabaseAnonKey.includes('placeholder')
-
-if (isUsingPlaceholders) {
-  console.error('Supabase configuration missing. Please set up your environment variables.')
-  console.log('1. Create a .env file in the root directory')
-  console.log('2. Add your Supabase URL and anon key from your Supabase project settings')
-  console.log('3. Restart the development server')
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Supabase environment variables missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.'
+  )
 }
 
-// Create a mock client if using placeholders to prevent crashes
-export const supabase = isUsingPlaceholders 
-  ? createClient('https://placeholder.supabase.co', 'placeholder-key', {
-      auth: { persistSession: false }
-    })
-  : createClient(supabaseUrl, supabaseAnonKey)
+// Create Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Database types
 export interface User {
   id: string
   name: string
   email: string
-  role: 'donor' | 'ngo_owner' | 'ngo_editor' | 'moderator' | 'admin'
+  role: 'donor' | 'ngo'
   created_at: string
 }
 

@@ -1,20 +1,19 @@
-import { motion } from "framer-motion"
-import { Link } from "react-router-dom"
-import { Heart, MapPin, Calendar, Users } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
+import { Heart, MapPin, Calendar, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface WishlistCardProps {
-  id: string
-  title: string
-  description: string
-  ngoName: string
-  location: string
-  occasion: string
-  targetAmount: number
-  raisedAmount: number
-  image: string
-  urgent?: boolean
+  id: string;
+  title: string;
+  description: string;
+  ngoName: string;
+  location: string;
+  targetAmount: number;
+  raisedAmount: number;
+  image: string;
+  urgent?: boolean;
 }
 
 export function WishlistCard({
@@ -23,14 +22,13 @@ export function WishlistCard({
   description,
   ngoName,
   location,
-  occasion,
   targetAmount,
   raisedAmount,
   image,
   urgent = false,
 }: WishlistCardProps) {
-  const progress = (raisedAmount / targetAmount) * 100
-  const remaining = targetAmount - raisedAmount
+  const progress = (raisedAmount / targetAmount) * 100;
+  const remaining = targetAmount - raisedAmount;
 
   return (
     <motion.div
@@ -44,7 +42,10 @@ export function WishlistCard({
           transition={{ duration: 2, repeat: Infinity }}
           className="absolute top-4 right-4 z-10"
         >
-          <Badge variant="destructive" className="bg-destructive text-destructive-foreground">
+          <Badge
+            variant="destructive"
+            className="bg-destructive text-destructive-foreground"
+          >
             Urgent
           </Badge>
         </motion.div>
@@ -58,7 +59,7 @@ export function WishlistCard({
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        
+
         {/* Heart Button */}
         <motion.button
           whileHover={{ scale: 1.1 }}
@@ -67,14 +68,6 @@ export function WishlistCard({
         >
           <Heart className="w-4 h-4 text-muted-foreground hover:text-primary" />
         </motion.button>
-
-        {/* Occasion Badge */}
-        <div className="absolute bottom-4 left-4">
-          <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm">
-            <Calendar className="w-3 h-3 mr-1" />
-            {occasion}
-          </Badge>
-        </div>
       </div>
 
       {/* Content */}
@@ -125,25 +118,14 @@ export function WishlistCard({
 
         {/* Actions */}
         <div className="flex space-x-2 pt-2">
-          <Button
-            variant="hero"
-            className="flex-1"
-            asChild
-          >
-            <Link to={`/donate/${id}`}>
-              Donate Now
-            </Link>
+          <Button variant="hero" className="flex-1" asChild>
+            <Link to={`/donate/${id}`}>Donate Now</Link>
           </Button>
-          <Button
-            variant="outline"
-            asChild
-          >
-            <Link to={`/wishlist/${id}`}>
-              View Details
-            </Link>
+          <Button variant="outline" asChild>
+            <Link to={`/wishlist/${id}`}>View Details</Link>
           </Button>
         </div>
       </div>
     </motion.div>
-  )
+  );
 }

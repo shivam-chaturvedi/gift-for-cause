@@ -1,38 +1,41 @@
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Link, useNavigate } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useAuth } from "@/contexts/auth-context"
-import { useToast } from "@/components/ui/use-toast"
-import { Heart, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/components/ui/use-toast";
+import { Heart, Loader2 } from "lucide-react";
 
 const Login = () => {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const { login, isLoading } = useAuth()
-  const { toast } = useToast()
-  const navigate = useNavigate()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const { login, user, isLoading } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) navigate("/"); // redirect if already logged in
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
     try {
-      await login(email, password)
+      await login(email, password);
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
-      })
-      navigate("/")
-    } catch (error) {
+      });
+      navigate("/");
+    } catch (error: any) {
       toast({
         title: "Login failed",
-        description: "Please check your credentials and try again.",
+        description: error.message,
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -99,7 +102,7 @@ const Login = () => {
         </form>
       </motion.div>
     </div>
-  )
-}
+  );
+};
 
-export default Login
+export default Login;

@@ -1,164 +1,89 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react"
-import { supabase } from "@/lib/supabase"
-import { authAPI } from "@/lib/api"
-import type { User } from "@/lib/supabase"
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { supabase } from "@/lib/supabase";
 
 interface AuthContextType {
-  user: User | null
-  login: (email: string, password: string) => Promise<void>
-  signup: (email: string, password: string, name: string, role?: string) => Promise<void>
-  logout: () => Promise<void>
-  isLoading: boolean
-  updateProfile: (updates: Partial<User>) => Promise<void>
+  user: any | null;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (
+    email: string,
+    password: string,
+    name: string,
+    role: string
+  ) => Promise<void>;
+  logout: () => Promise<void>;
+  isLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session
-    const checkUser = async () => {
-      try {
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        if (authUser) {
-          // Fetch user profile from users table
-          const { data: userProfile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', authUser.id)
-            .single()
-          
-          if (userProfile) {
-            setUser(userProfile)
-          }
-        }
-      } catch (error) {
-        console.error('Error checking user session:', error)
-      } finally {
-        setIsLoading(false)
+    // check existing session on page load
+    const getSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+    };
+    getSession();
+
+    // subscribe to auth state changes
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
       }
-    }
+    );
 
-    checkUser()
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          try {
-            const { data: userProfile } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single()
-            
-            if (userProfile) {
-              setUser(userProfile)
-            }
-          } catch (error) {
-            console.error('Error fetching user profile:', error)
-          }
-        } else {
-          setUser(null)
-        }
-        setIsLoading(false)
-      }
-    )
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const signup = async (email: string, password: string, name: string, role: string = 'donor') => {
-    setIsLoading(true)
-    try {
-      const { data } = await authAPI.signUp(email, password, name, role)
-      
-      // Create user profile in users table
-      if (data.user) {
-        const { data: userProfile } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            name,
-            email,
-            role: role as User['role']
-          })
-          .select()
-          .single()
-        
-        if (userProfile) {
-          setUser(userProfile)
-        }
-      }
-    } catch (error) {
-      console.error('Signup error:', error)
-      throw error
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    return () => listener.subscription.unsubscribe();
+  }, []);
+  
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true)
-    try {
-      const { data } = await authAPI.signIn(email, password)
-      
-      if (data.user) {
-        const { data: userProfile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', data.user.id)
-          .single()
-        
-        if (userProfile) {
-          setUser(userProfile)
-        }
-      }
-    } catch (error) {
-      console.error('Login error:', error)
-      throw error
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    setUser(data.user);
+  };
+
+  const signup = async (email: string, password: string, name: string) => {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+
+    // Insert into `users` table (only include fields present in table)
+    const { error: profileError } = await supabase
+      .from("users")
+      .insert([{ id: data.user?.id, name, email, role: "donor" }]);
+    if (profileError) throw profileError;
+
+    setUser(data.user);
+  };
 
   const logout = async () => {
-    setIsLoading(true)
-    try {
-      await authAPI.signOut()
-      setUser(null)
-    } catch (error) {
-      console.error('Logout error:', error)
-      throw error
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const updateProfile = async (updates: Partial<User>) => {
-    try {
-      const updatedUser = await authAPI.updateProfile(updates)
-      setUser(updatedUser)
-    } catch (error) {
-      console.error('Profile update error:', error)
-      throw error
-    }
-  }
+    await supabase.auth.signOut();
+    setUser(null);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isLoading, updateProfile }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
-  )
-}
+  );
+};
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
-  return context
-}
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  return context;
+};

@@ -3,7 +3,7 @@ import { loadStripe } from '@stripe/stripe-js'
 // Payment gateway configurations
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_your_stripe_key'
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'your_paypal_client_id'
-const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || 'your_razorpay_key_id'
+const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_VVaxe8RQLNF0DS'
 
 // Initialize Stripe
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY)

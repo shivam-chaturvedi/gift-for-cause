@@ -1,134 +1,228 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/auth-context'
-import { wishlistAPI, donationAPI, successStoryAPI } from '@/lib/api'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Progress } from '@/components/ui/progress'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Calendar, DollarSign, Gift, TrendingUp, Users, FileText } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Calendar,
+  DollarSign,
+  Gift,
+  TrendingUp,
+  Users,
+  FileText,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 
 interface WishlistWithItems {
-  id: string
-  title: string
-  status: string
-  created_at: string
-  target_amount: number
-  description: string
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+  target_amount: number;
+  description: string;
   wishlist_items: Array<{
-    id: string
-    name: string
-    price: number
-    qty: number
-    funded_qty: number
-  }>
+    id: string;
+    name: string;
+    price: number;
+    qty: number;
+    funded_qty: number;
+  }>;
 }
 
 interface DonationWithDetails {
-  id: string
-  amount: number
-  status: string
-  created_at: string
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
   wishlist_items: {
-    name: string
-  }
+    name: string;
+  };
   users: {
-    name: string
-    email: string
-  }
+    name: string;
+    email: string;
+  };
 }
 
 export function NGODashboard() {
-  const { user } = useAuth()
-  const [wishlists, setWishlists] = useState<WishlistWithItems[]>([])
-  const [donations, setDonations] = useState<DonationWithDetails[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [wishlists, setWishlists] = useState<WishlistWithItems[]>([]);
+  const [donations, setDonations] = useState<DonationWithDetails[]>([]);
+
   const [newStory, setNewStory] = useState({
-    title: '',
-    story_text: '',
-    impact_metrics: ''
-  })
+    title: "",
+    story_text: "",
+    impact_metrics: "",
+  });
+
+  const { user: authUser, isLoading: authLoading } = useAuth();
+  const [ngo, setNgo] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const fetchUser = async (email: string) => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .single();
+
+    if (error) {
+      console.error("Error fetching user data:", error);
+      setNgo(null);
+    } else {
+      setNgo(data);
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (authUser?.email) {
+        fetchUser(authUser.email);
+      } else {
+        setNgo(null);
+        setIsLoading(false);
+        navigate("/login");
+      }
+    }
+  }, [authUser, authLoading, navigate]);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (user) {
-        try {
-          // For demo purposes, we'll use a mock NGO ID
-          const mockNGOId = '550e8400-e29b-41d4-a716-446655440001'
-          const [wishlistsData, donationsData] = await Promise.all([
-            wishlistAPI.getByNGO(mockNGOId),
-            donationAPI.getByNGO(mockNGOId)
-          ])
-          setWishlists(wishlistsData)
-          setDonations(donationsData)
-        } catch (error) {
-          console.error('Error fetching NGO dashboard data:', error)
-        } finally {
-          setIsLoading(false)
-        }
-      }
-    }
+      if (!ngo) return;
 
-    fetchData()
-  }, [user])
+      try {
+        // Fetch the full NGO user record from 'users' table
+        const { data: ngoData, error: ngoError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("email", ngo.email)
+          .single();
+
+        if (ngoError) throw ngoError;
+        const ngoId = ngoData.id;
+
+        // Fetch wishlists for this NGO
+        const { data: wishlistData, error: wishlistError } = await supabase
+          .from("wishlists")
+          .select("*, wishlist_items(*)")
+          .eq("ngo_id", ngoId);
+        if (wishlistError) throw wishlistError;
+
+        // Fetch donations for this NGO
+        const { data: donationData, error: donationError } = await supabase
+          .from("donations")
+          .select("*, wishlist_items(*), users(*)")
+          .eq("ngo_id", ngoId);
+        if (donationError) throw donationError;
+
+        setWishlists(wishlistData || []);
+        setDonations(donationData || []);
+      } catch (error) {
+        console.error("Error fetching NGO dashboard data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [ngo]);
+
+  
+
 
   const totalRaised = donations
-    .filter(d => d.status === 'completed')
-    .reduce((sum, d) => sum + Number(d.amount), 0)
+    .filter((d) => d.status === "completed")
+    .reduce((sum, d) => sum + Number(d.amount), 0);
 
-  const totalDonations = donations.filter(d => d.status === 'completed').length
-  const activeWishlists = wishlists.filter(w => w.status === 'published').length
-  const pendingWishlists = wishlists.filter(w => w.status === 'draft').length
+  const totalDonations = donations.filter(
+    (d) => d.status === "completed"
+  ).length;
+  const activeWishlists = wishlists.filter(
+    (w) => w.status === "published"
+  ).length;
+  const pendingWishlists = wishlists.filter((w) => w.status === "draft").length;
 
   const statsCards = [
     {
-      title: 'Total Raised',
+      title: "Total Raised",
       value: `$${totalRaised.toLocaleString()}`,
       icon: DollarSign,
-      color: 'text-green-600'
+      color: "text-green-600",
     },
     {
-      title: 'Donations Received',
+      title: "Donations Received",
       value: totalDonations.toString(),
       icon: Gift,
-      color: 'text-blue-600'
+      color: "text-blue-600",
     },
     {
-      title: 'Active Wishlists',
+      title: "Active Wishlists",
       value: activeWishlists.toString(),
       icon: FileText,
-      color: 'text-purple-600'
+      color: "text-purple-600",
     },
     {
-      title: 'This Month',
+      title: "This Month",
       value: `$${(totalRaised * 0.4).toLocaleString()}`,
       icon: TrendingUp,
-      color: 'text-orange-600'
-    }
-  ]
+      color: "text-orange-600",
+    },
+  ];
 
   const handleSubmitStory = async () => {
     try {
-      const mockNGOId = '550e8400-e29b-41d4-a716-446655440001'
-      await successStoryAPI.create({
-        ngo_id: mockNGOId,
-        title: newStory.title,
-        story_text: newStory.story_text,
-        impact_metrics: newStory.impact_metrics,
-        media_url: '/api/placeholder/400/300'
-      })
-      setNewStory({ title: '', story_text: '', impact_metrics: '' })
-      // You could add a toast notification here
+      // Get NGO ID again
+      const { data: ngoData } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", ngo.email)
+        .single();
+      if (!ngoData) return;
+
+      await supabase.from("success_stories").insert([
+        {
+          ngo_id: ngoData.id,
+          title: newStory.title,
+          story_text: newStory.story_text,
+          impact_metrics: newStory.impact_metrics,
+          media_url: "/api/placeholder/400/300",
+        },
+      ]);
+      setNewStory({ title: "", story_text: "", impact_metrics: "" });
     } catch (error) {
-      console.error('Error submitting story:', error)
+      console.error("Error submitting story:", error);
     }
-  }
+  };
+
 
   if (isLoading) {
     return (
@@ -136,12 +230,15 @@ export function NGODashboard() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 animate-pulse rounded-lg" />
+              <div
+                key={i}
+                className="h-32 bg-gray-200 animate-pulse rounded-lg"
+              />
             ))}
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -180,7 +277,9 @@ export function NGODashboard() {
                         {stat.value}
                       </p>
                     </div>
-                    <div className={`p-3 rounded-full bg-gray-100 dark:bg-gray-800`}>
+                    <div
+                      className={`p-3 rounded-full bg-gray-100 dark:bg-gray-800`}
+                    >
                       <stat.icon className={`h-6 w-6 ${stat.color}`} />
                     </div>
                   </div>
@@ -212,16 +311,29 @@ export function NGODashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {donations.slice(0, 5).map((donation) => (
-                      <div key={donation.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div
+                        key={donation.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
                         <div>
-                          <p className="font-medium">{donation.wishlist_items?.name}</p>
+                          <p className="font-medium">
+                            {donation.wishlist_items?.name}
+                          </p>
                           <p className="text-sm text-gray-500">
-                            {donation.users?.name || 'Anonymous'}
+                            {donation.users?.name || "Anonymous"}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">${Number(donation.amount).toLocaleString()}</p>
-                          <Badge variant={donation.status === 'completed' ? 'default' : 'secondary'}>
+                          <p className="font-medium">
+                            ${Number(donation.amount).toLocaleString()}
+                          </p>
+                          <Badge
+                            variant={
+                              donation.status === "completed"
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
                             {donation.status}
                           </Badge>
                         </div>
@@ -242,9 +354,13 @@ export function NGODashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {wishlists.slice(0, 3).map((wishlist) => {
-                      const totalItems = wishlist.wishlist_items?.length || 0
-                      const fundedItems = wishlist.wishlist_items?.filter(item => item.funded_qty >= item.qty).length || 0
-                      const progress = totalItems > 0 ? (fundedItems / totalItems) * 100 : 0
+                      const totalItems = wishlist.wishlist_items?.length || 0;
+                      const fundedItems =
+                        wishlist.wishlist_items?.filter(
+                          (item) => item.funded_qty >= item.qty
+                        ).length || 0;
+                      const progress =
+                        totalItems > 0 ? (fundedItems / totalItems) * 100 : 0;
 
                       return (
                         <div key={wishlist.id} className="space-y-2">
@@ -257,7 +373,7 @@ export function NGODashboard() {
                             {fundedItems} of {totalItems} items funded
                           </p>
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 </CardContent>
@@ -270,7 +386,7 @@ export function NGODashboard() {
               <h2 className="text-2xl font-bold">Your Wishlists</h2>
               <Button>Create New Wishlist</Button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {wishlists.map((wishlist) => (
                 <Card key={wishlist.id}>
@@ -282,7 +398,13 @@ export function NGODashboard() {
                     <div className="space-y-3">
                       <div className="flex justify-between text-sm">
                         <span>Status</span>
-                        <Badge variant={wishlist.status === 'published' ? 'default' : 'secondary'}>
+                        <Badge
+                          variant={
+                            wishlist.status === "published"
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
                           {wishlist.status}
                         </Badge>
                       </div>
@@ -329,11 +451,21 @@ export function NGODashboard() {
                         <TableCell>
                           {new Date(donation.created_at).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>{donation.users?.name || 'Anonymous'}</TableCell>
-                        <TableCell>{donation.wishlist_items?.name}</TableCell>
-                        <TableCell>${Number(donation.amount).toLocaleString()}</TableCell>
                         <TableCell>
-                          <Badge variant={donation.status === 'completed' ? 'default' : 'secondary'}>
+                          {donation.users?.name || "Anonymous"}
+                        </TableCell>
+                        <TableCell>{donation.wishlist_items?.name}</TableCell>
+                        <TableCell>
+                          ${Number(donation.amount).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              donation.status === "completed"
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
                             {donation.status}
                           </Badge>
                         </TableCell>
@@ -362,7 +494,9 @@ export function NGODashboard() {
                       <Input
                         id="title"
                         value={newStory.title}
-                        onChange={(e) => setNewStory({ ...newStory, title: e.target.value })}
+                        onChange={(e) =>
+                          setNewStory({ ...newStory, title: e.target.value })
+                        }
                         placeholder="Enter story title"
                       />
                     </div>
@@ -371,7 +505,12 @@ export function NGODashboard() {
                       <Textarea
                         id="story"
                         value={newStory.story_text}
-                        onChange={(e) => setNewStory({ ...newStory, story_text: e.target.value })}
+                        onChange={(e) =>
+                          setNewStory({
+                            ...newStory,
+                            story_text: e.target.value,
+                          })
+                        }
                         placeholder="Tell us about the impact..."
                         rows={4}
                       />
@@ -381,7 +520,12 @@ export function NGODashboard() {
                       <Input
                         id="metrics"
                         value={newStory.impact_metrics}
-                        onChange={(e) => setNewStory({ ...newStory, impact_metrics: e.target.value })}
+                        onChange={(e) =>
+                          setNewStory({
+                            ...newStory,
+                            impact_metrics: e.target.value,
+                          })
+                        }
                         placeholder="e.g., 1000+ families served, 90% improvement"
                       />
                     </div>
@@ -404,9 +548,12 @@ export function NGODashboard() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="p-4 border rounded-lg">
-                    <h3 className="font-medium">Clean Water Transforms Village Life</h3>
+                    <h3 className="font-medium">
+                      Clean Water Transforms Village Life
+                    </h3>
                     <p className="text-sm text-gray-600 mt-1">
-                      The installation of water purification systems in rural villages has dramatically improved health outcomes.
+                      The installation of water purification systems in rural
+                      villages has dramatically improved health outcomes.
                     </p>
                     <div className="flex items-center justify-between mt-3">
                       <Badge variant="default">Approved</Badge>
@@ -422,5 +569,5 @@ export function NGODashboard() {
         </Tabs>
       </motion.div>
     </div>
-  )
+  );
 }

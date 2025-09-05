@@ -1,20 +1,45 @@
-import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@/contexts/auth-context'
-import { DonorDashboard } from '@/components/dashboard/DonorDashboard'
-import { NGODashboard } from '@/components/dashboard/NGODashboard'
-import { AdminDashboard } from '@/components/dashboard/AdminDashboard'
-import { Skeleton } from '@/components/ui/skeleton'
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/auth-context";
+import { supabase } from "@/lib/supabase";
+import { DonorDashboard } from "@/components/dashboard/DonorDashboard";
+import { NGODashboard } from "@/components/dashboard/NGODashboard";
+import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
-  const { user, isLoading } = useAuth()
-  const navigate = useNavigate()
+  const { user: authUser, isLoading: authLoading } = useAuth();
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const fetchUser = async (email: string) => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .single();
+
+    if (error) {
+      console.error("Error fetching user data:", error);
+      setUser(null);
+    } else {
+      setUser(data);
+    }
+    setIsLoading(false);
+  };
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate('/login')
+    if (!authLoading) {
+      if (authUser?.email) {
+        fetchUser(authUser.email);
+      } else {
+        setUser(null);
+        setIsLoading(false);
+        navigate("/login");
+      }
     }
-  }, [user, isLoading, navigate])
+  }, [authUser, authLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -32,24 +57,20 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
-  if (!user) {
-    return null
-  }
+  if (!user) return null;
 
-  // Render different dashboards based on user role
+  // Render dashboards based on role
   switch (user.role) {
-    case 'donor':
-      return <DonorDashboard />
-    case 'ngo_owner':
-    case 'ngo_editor':
-      return <NGODashboard />
-    case 'admin':
-    case 'moderator':
-      return <AdminDashboard />
+    case "donor":
+      return <DonorDashboard />;
+    case "ngo":
+      return <NGODashboard />;
+    case "admin":
+      return <AdminDashboard />;
     default:
-      return <DonorDashboard />
+      return <DonorDashboard />;
   }
 }
