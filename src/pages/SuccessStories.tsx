@@ -1,95 +1,46 @@
-import { motion } from "framer-motion"
-import { Heart, MapPin, Calendar, Users } from "lucide-react"
+"use client"
 
-// Mock success stories data
-const stories = [
-  {
-    id: "1",
-    title: "Priya's Dream School",
-    subtitle: "How birthday donations built a library",
-    description: "Instead of traditional gifts, Priya asked friends to donate books for her 16th birthday. The response was overwhelming - they raised enough to build a complete library for a rural school in Rajasthan.",
-    image: "/api/placeholder/600/400",
-    donorName: "Priya Sharma",
-    location: "Mumbai, India",
-    ngoName: "Education First Foundation",
-    impact: "200+ children now have access to books",
-    amount: "₹45,000",
-    date: "December 2023",
-    category: "Education"
-  },
-  {
-    id: "2", 
-    title: "The Wedding That Changed Lives",
-    subtitle: "Anniversary celebration becomes clean water mission",
-    description: "For their 25th wedding anniversary, the Patels decided to install water purification systems in their ancestral village instead of throwing a grand party. The celebration turned into a life-changing gift for the entire community.",
-    image: "/api/placeholder/600/400",
-    donorName: "Raj & Meera Patel",
-    location: "Gujarat, India", 
-    ngoName: "Water for All",
-    impact: "500+ people get clean water daily",
-    amount: "₹75,000",
-    date: "November 2023",
-    category: "Water & Sanitation"
-  },
-  {
-    id: "3",
-    title: "Diwali Lights of Hope",
-    subtitle: "Festival celebration empowers women",
-    description: "The Kumar family decided to celebrate Diwali by funding sewing machine training for women in rural Karnataka. This Diwali gift continues to shine as these women now run successful tailoring businesses.",
-    image: "/api/placeholder/600/400",
-    donorName: "Kumar Family",
-    location: "Bangalore, India",
-    ngoName: "Women Empowerment Trust", 
-    impact: "25 women became entrepreneurs",
-    amount: "₹30,000",
-    date: "October 2023",
-    category: "Women Empowerment"
-  },
-  {
-    id: "4",
-    title: "Baby Shower for a Cause",
-    subtitle: "New life celebration saves other lives",
-    description: "When expecting their first child, the Mishras used their baby shower to raise funds for a neonatal care unit in a rural hospital. Their joy multiplied as they helped save newborn lives.",
-    image: "/api/placeholder/600/400",
-    donorName: "Ankit & Shreya Mishra",
-    location: "Delhi, India",
-    ngoName: "Health Access Initiative",
-    impact: "50+ newborns received critical care",
-    amount: "₹60,000", 
-    date: "September 2023",
-    category: "Healthcare"
-  },
-  {
-    id: "5",
-    title: "Graduation Gift That Keeps Giving",
-    subtitle: "Student success lights up villages",
-    description: "Fresh graduate Arjun used his graduation party budget to provide solar lamps to students in remote areas. His achievement celebration became an opportunity for other students to achieve their dreams.",
-    image: "/api/placeholder/600/400",
-    donorName: "Arjun Reddy",
-    location: "Hyderabad, India",
-    ngoName: "Bright Future NGO",
-    impact: "100+ students can study after dark",
-    amount: "₹25,000",
-    date: "August 2023", 
-    category: "Education"
-  },
-  {
-    id: "6",
-    title: "Retirement Celebration with Purpose",
-    subtitle: "Career milestone feeds the hungry",
-    description: "Celebrating 35 years of service, Mr. Gupta chose to sponsor a nutrition program for underprivileged children instead of hosting a retirement party. His career legacy continues through healthy young minds.",
-    image: "/api/placeholder/600/400",
-    donorName: "Ramesh Gupta",
-    location: "Pune, India",
-    ngoName: "Feed the Future",
-    impact: "300+ children receive daily meals",
-    amount: "₹40,000",
-    date: "July 2023",
-    category: "Nutrition"
-  }
-]
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import { Heart, MapPin, Calendar } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { supabase } from "@/lib/supabase"
+
+interface Story {
+  id: string
+  created_at: string
+  title: string
+  story_text: string
+  impact_metrics?: string
+  media_url?: string // can be image or video
+  ngo_id: string
+}
 
 const SuccessStories = () => {
+  const [stories, setStories] = useState<Story[]>([])
+  const [visibleStories, setVisibleStories] = useState(3)
+  const [loading, setLoading] = useState(true)
+
+  // Fetch stories from Supabase
+  useEffect(() => {
+    const fetchStories = async () => {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from("success_stories")
+        .select("*")
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Error fetching stories:", error)
+      } else {
+        setStories(data || [])
+      }
+      setLoading(false)
+    }
+
+    fetchStories()
+  }, [])
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -117,97 +68,102 @@ const SuccessStories = () => {
       {/* Stories Grid */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <div className="grid gap-12">
-            {stories.map((story, index) => (
-              <motion.div
-                key={story.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className={`grid lg:grid-cols-2 gap-8 items-center ${
-                  index % 2 === 1 ? 'lg:grid-flow-col-dense' : ''
-                }`}
-              >
-                {/* Image */}
+          {loading ? (
+            <p className="text-center text-muted-foreground">Loading stories...</p>
+          ) : stories.length > 0 ? (
+            <div className="grid gap-12">
+              {stories.slice(0, visibleStories).map((story, index) => (
                 <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.3 }}
-                  className={`relative overflow-hidden rounded-2xl shadow-medium ${
-                    index % 2 === 1 ? 'lg:col-start-2' : ''
+                  key={story.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className={`grid lg:grid-cols-2 gap-8 items-center ${
+                    index % 2 === 1 ? "lg:grid-flow-col-dense" : ""
                   }`}
                 >
-                  <img
-                    src={story.image}
-                    alt={story.title}
-                    className="w-full h-80 object-cover"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-                      {story.category}
-                    </span>
+                  {/* Media (Image or Video) */}
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ duration: 0.3 }}
+                    className={`relative overflow-hidden rounded-2xl shadow-medium ${
+                      index % 2 === 1 ? "lg:col-start-2" : ""
+                    }`}
+                  >
+                    {story.media_url ? (
+                      story.media_url.match(/\.(mp4|webm|ogg)$/i) ? (
+                        <video
+                          src={story.media_url}
+                          controls
+                          className="w-full h-80 object-cover rounded-2xl"
+                        />
+                      ) : (
+                        <img
+                          src={story.media_url}
+                          alt={story.title}
+                          className="w-full h-80 object-cover"
+                        />
+                      )
+                    ) : (
+                      <div className="w-full h-80 bg-muted flex items-center justify-center text-muted-foreground">
+                        No Media
+                      </div>
+                    )}
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                        {new Date(story.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </motion.div>
+
+                  {/* Content */}
+                  <div
+                    className={`space-y-6 ${
+                      index % 2 === 1 ? "lg:col-start-1" : ""
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+                        {story.title}
+                      </h2>
+                      <p className="text-muted-foreground leading-relaxed text-lg">
+                        {story.story_text}
+                      </p>
+                    </div>
+
+                    {/* Impact Info */}
+                    {story.impact_metrics && (
+                      <div className="p-4 bg-muted/30 rounded-xl">
+                        <div className="flex items-center space-x-2">
+                          <Heart className="h-5 w-5 text-primary" />
+                          <p className="font-medium text-primary">
+                            {story.impact_metrics}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
+              ))}
 
-                {/* Content */}
-                <div className={`space-y-6 ${index % 2 === 1 ? 'lg:col-start-1' : ''}`}>
-                  <div className="space-y-3">
-                    <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-                      {story.title}
-                    </h2>
-                    <h3 className="text-lg text-primary font-medium">
-                      {story.subtitle}
-                    </h3>
-                    <p className="text-muted-foreground leading-relaxed text-lg">
-                      {story.description}
-                    </p>
-                  </div>
-
-                  {/* Donor Info */}
-                  <div className="flex items-center space-x-4 p-4 bg-muted/30 rounded-xl">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                      <Heart className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-foreground">{story.donorName}</p>
-                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                        <div className="flex items-center space-x-1">
-                          <MapPin className="w-3 h-3" />
-                          <span>{story.location}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="w-3 h-3" />
-                          <span>{story.date}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Impact Stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="text-center p-4 bg-accent-light/20 rounded-xl">
-                      <div className="text-2xl font-bold text-accent-foreground">
-                        {story.amount}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Donated</div>
-                    </div>
-                    <div className="text-center p-4 bg-secondary-light/20 rounded-xl">
-                      <div className="text-sm font-medium text-secondary">
-                        {story.ngoName}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Partner NGO</div>
-                    </div>
-                    <div className="text-center p-4 bg-primary/10 rounded-xl">
-                      <div className="text-sm font-medium text-primary text-center">
-                        {story.impact}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Impact Created</div>
-                    </div>
-                  </div>
+              {/* Load More */}
+              {visibleStories < stories.length && (
+                <div className="flex justify-center pt-8">
+                  <Button
+                    variant="outline"
+                    onClick={() => setVisibleStories((prev) => prev + 3)}
+                  >
+                    Load More
+                  </Button>
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground">
+              No stories found.
+            </p>
+          )}
         </div>
       </section>
 

@@ -1,93 +1,70 @@
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Search, Filter, SlidersHorizontal } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { WishlistCard } from "@/components/ui/wishlist-card"
+"use client";
 
-// Mock data - in real app this would come from API
-const allWishlists = [
-  {
-    id: "1",
-    title: "School Supplies for Rural Children",
-    description: "Help provide essential learning materials for underprivileged children in rural areas. Every donation creates opportunities for education.",
-    ngoName: "Education First Foundation",
-    location: "Rajasthan, India",
-    occasion: "Back to School",
-    targetAmount: 50000,
-    raisedAmount: 32000,
-    image: "/api/placeholder/400/300",
-    urgent: true,
-  },
-  {
-    id: "2",
-    title: "Clean Water Initiative", 
-    description: "Support the installation of water purification systems in villages lacking access to clean drinking water.",
-    ngoName: "Water for All",
-    location: "Odisha, India",
-    occasion: "World Water Day",
-    targetAmount: 75000,
-    raisedAmount: 45000,
-    image: "/api/placeholder/400/300",
-  },
-  {
-    id: "3",
-    title: "Women's Skill Development",
-    description: "Empower women through vocational training programs that provide sustainable livelihood opportunities.",
-    ngoName: "Women Empowerment Trust",
-    location: "Karnataka, India",
-    occasion: "Women's Day",
-    targetAmount: 40000,
-    raisedAmount: 28000,
-    image: "/api/placeholder/400/300",
-  },
-  {
-    id: "4",
-    title: "Medical Equipment for Rural Clinic",
-    description: "Help equip a rural health center with essential medical devices to serve remote communities better.",
-    ngoName: "Health Access Initiative", 
-    location: "Bihar, India",
-    occasion: "Health Awareness",
-    targetAmount: 100000,
-    raisedAmount: 60000,
-    image: "/api/placeholder/400/300",
-  },
-  {
-    id: "5",
-    title: "Solar Lamps for Students",
-    description: "Provide solar-powered study lamps for students in areas with limited electricity access.",
-    ngoName: "Bright Future NGO",
-    location: "Jharkhand, India", 
-    occasion: "Diwali Special",
-    targetAmount: 25000,
-    raisedAmount: 18000,
-    image: "/api/placeholder/400/300",
-  },
-  {
-    id: "6",
-    title: "Nutritious Meals Program",
-    description: "Support daily nutritious meal programs for malnourished children in urban slums.",
-    ngoName: "Feed the Future",
-    location: "Mumbai, Maharashtra",
-    occasion: "Child Nutrition Week",
-    targetAmount: 35000,
-    raisedAmount: 22000,
-    image: "/api/placeholder/400/300",
-  }
-]
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Search, Filter, SlidersHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { WishlistCard } from "@/components/ui/wishlist-card";
+import { supabase } from "@/lib/supabase";
+
+// Types for wishlist rows
+interface Wishlist {
+  id: string;
+  title: string;
+  description: string;
+  ngo_name: string;
+  location: string;
+  target_amount: number;
+  raised_amount: number;
+  image: string;
+  urgent?: boolean;
+}
 
 const BrowseWishlists = () => {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedOccasion, setSelectedOccasion] = useState("all")
-  const [sortBy, setSortBy] = useState("relevance")
+  const [wishlists, setWishlists] = useState<Wishlist[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedOccasion, setSelectedOccasion] = useState("all");
+  const [sortBy, setSortBy] = useState("relevance");
+  const [loading, setLoading] = useState(true);
 
-  const filteredWishlists = allWishlists.filter(wishlist => {
-    const matchesSearch = wishlist.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         wishlist.ngoName.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesOccasion = selectedOccasion === "all" || wishlist.occasion === selectedOccasion
-    return matchesSearch && matchesOccasion
-  })
+  // Fetch wishlists from Supabase
+  useEffect(() => {
+    const fetchWishlists = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("wishlists")
+        .select(
+          "id, title, description, ngo_name, location, target_amount, raised_amount, image, urgent"
+        );
+
+      if (error) {
+        console.error("Error fetching wishlists:", error);
+      } else {
+        setWishlists(data || []);
+      }
+      setLoading(false);
+    };
+
+    fetchWishlists();
+  }, []);
+
+  const filteredWishlists = wishlists.filter((wishlist) => {
+    const matchesSearch =
+      wishlist.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      wishlist.ngo_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      wishlist.location.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // 🚨 NOTE: No "occasion" column in schema now, so removed filter
+    return matchesSearch;
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -106,8 +83,8 @@ const BrowseWishlists = () => {
               </span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Discover meaningful ways to celebrate while creating real impact. 
-              Find the perfect wishlist that aligns with your values.
+              Discover meaningful ways to support NGOs while creating real
+              impact.
             </p>
           </motion.div>
         </div>
@@ -126,31 +103,15 @@ const BrowseWishlists = () => {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder="Search wishlists, NGOs..."
+                placeholder="Search wishlists, NGOs, or locations..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
 
-            {/* Filters */}
+            {/* Sorting */}
             <div className="flex gap-4 items-center">
-              <Select value={selectedOccasion} onValueChange={setSelectedOccasion}>
-                <SelectTrigger className="w-48">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filter by Occasion" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Occasions</SelectItem>
-                  <SelectItem value="Back to School">Back to School</SelectItem>
-                  <SelectItem value="World Water Day">World Water Day</SelectItem>
-                  <SelectItem value="Women's Day">Women's Day</SelectItem>
-                  <SelectItem value="Health Awareness">Health Awareness</SelectItem>
-                  <SelectItem value="Diwali Special">Diwali Special</SelectItem>
-                  <SelectItem value="Child Nutrition Week">Child Nutrition Week</SelectItem>
-                </SelectContent>
-              </Select>
-
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-48">
                   <SlidersHorizontal className="w-4 h-4 mr-2" />
@@ -171,64 +132,72 @@ const BrowseWishlists = () => {
       {/* Results */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="mb-8"
-          >
-            <p className="text-muted-foreground">
-              Showing {filteredWishlists.length} wishlist{filteredWishlists.length !== 1 ? 's' : ''}
-              {searchTerm && ` for "${searchTerm}"`}
-              {selectedOccasion !== "all" && ` in "${selectedOccasion}"`}
+          {loading ? (
+            <p className="text-center text-muted-foreground">
+              Loading wishlists...
             </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {filteredWishlists.map((wishlist, index) => (
+          ) : (
+            <>
               <motion.div
-                key={wishlist.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="mb-8"
               >
-                <WishlistCard {...wishlist} />
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {filteredWishlists.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6 }}
-              className="text-center py-12"
-            >
-              <div className="space-y-4">
-                <p className="text-lg text-muted-foreground">
-                  No wishlists found matching your criteria.
+                <p className="text-muted-foreground">
+                  Showing {filteredWishlists.length} wishlist
+                  {filteredWishlists.length !== 1 ? "s" : ""}
+                  {searchTerm && ` for "${searchTerm}"`}
                 </p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchTerm("")
-                    setSelectedOccasion("all")
-                  }}
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+              >
+                {filteredWishlists.map((wishlist, index) => (
+                  <motion.div
+                    key={wishlist.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    <WishlistCard {...wishlist} />
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {filteredWishlists.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.6 }}
+                  className="text-center py-12"
                 >
-                  Clear Filters
-                </Button>
-              </div>
-            </motion.div>
+                  <div className="space-y-4">
+                    <p className="text-lg text-muted-foreground">
+                      No wishlists found matching your criteria.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setSortBy("relevance");
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </>
           )}
         </div>
       </section>
     </div>
-  )
-}
+  );
+};
 
-export default BrowseWishlists
+export default BrowseWishlists;

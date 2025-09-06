@@ -1,78 +1,61 @@
-import { motion } from "framer-motion"
-import { Link } from "react-router-dom"
-import { ArrowRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { InfiniteCarousel } from "@/components/ui/infinite-carousel"
-import { WishlistCard } from "@/components/ui/wishlist-card"
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { InfiniteCarousel } from "@/components/ui/infinite-carousel";
+import { WishlistCard } from "@/components/ui/wishlist-card";
+import { supabase } from "@/lib/supabase"; // for dynamic data fetch
 
-// Import generated images
-import educationSupplies from "@/assets/education-supplies.jpg"
-import cleanWater from "@/assets/clean-water.jpg"
-import womenEmpowerment from "@/assets/women-empowerment.jpg"
-import medicalEquipment from "@/assets/medical-equipment.jpg"
-import solarLamps from "@/assets/solar-lamps.jpg"
-
-// Mock data - in real app this would come from API
-const featuredWishlists = [
-  {
-    id: "1",
-    title: "School Supplies for Rural Children",
-    description: "Help provide essential learning materials for underprivileged children in rural areas. Every donation creates opportunities for education.",
-    ngoName: "Education First Foundation",
-    location: "Rajasthan, India",
-    occasion: "Back to School",
-    targetAmount: 50000,
-    raisedAmount: 32000,
-    image: educationSupplies,
-    urgent: true,
-  },
-  {
-    id: "2", 
-    title: "Clean Water Initiative",
-    description: "Support the installation of water purification systems in villages lacking access to clean drinking water.",
-    ngoName: "Water for All",
-    location: "Odisha, India",
-    occasion: "World Water Day",
-    targetAmount: 75000,
-    raisedAmount: 45000,
-    image: cleanWater,
-  },
-  {
-    id: "3",
-    title: "Women's Skill Development",
-    description: "Empower women through vocational training programs that provide sustainable livelihood opportunities.",
-    ngoName: "Women Empowerment Trust",
-    location: "Karnataka, India", 
-    occasion: "Women's Day",
-    targetAmount: 40000,
-    raisedAmount: 28000,
-    image: womenEmpowerment,
-  },
-  {
-    id: "4",
-    title: "Medical Equipment for Rural Clinic",
-    description: "Help equip a rural health center with essential medical devices to serve remote communities better.",
-    ngoName: "Health Access Initiative",
-    location: "Bihar, India",
-    occasion: "Health Awareness",
-    targetAmount: 100000,
-    raisedAmount: 60000,
-    image: medicalEquipment,
-  },
-  {
-    id: "5",
-    title: "Solar Lamps for Students",
-    description: "Provide solar-powered study lamps for students in areas with limited electricity access.",
-    ngoName: "Bright Future NGO",
-    location: "Jharkhand, India",
-    occasion: "Diwali Special",
-    targetAmount: 25000,
-    raisedAmount: 18000,
-    image: solarLamps,
-  }
-]
+interface Wishlist {
+  id: string;
+  title: string;
+  description: string;
+  ngo_name: string;
+  location: string;
+  target_amount: number;
+  raised_amount: number;
+  image: string;
+  urgent?: boolean;
+}
 
 export function FeaturedWishlistsSection() {
+  const [wishlists, setWishlists] = useState<Wishlist[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchWishlists() {
+      const { data, error } = await supabase
+        .from("wishlists")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error("Error fetching wishlists:", error.message);
+      } else if (data) {
+        setWishlists(data as Wishlist[]);
+      }
+      setLoading(false);
+    }
+
+    fetchWishlists();
+  }, []);
+
+  if (loading)
+    return (
+      <p className="text-center py-16 text-muted-foreground">
+        Loading featured wishlists...
+      </p>
+    );
+
+  if (wishlists.length === 0)
+    return (
+      <p className="text-center py-16 text-muted-foreground">
+        No featured wishlists available.
+      </p>
+    );
+
   return (
     <section className="py-16 bg-muted/30">
       <div className="container mx-auto px-4">
@@ -87,7 +70,7 @@ export function FeaturedWishlistsSection() {
             Featured Wishlists
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Discover meaningful ways to celebrate while creating real impact. 
+            Discover meaningful ways to celebrate while creating real impact.
             These wishlists need your support to transform lives.
           </p>
         </motion.div>
@@ -98,15 +81,19 @@ export function FeaturedWishlistsSection() {
           transition={{ duration: 0.8, delay: 0.2 }}
           viewport={{ once: true }}
         >
-          <InfiniteCarousel
-            autoplay={true}
-            delay={4000}
-            className="mb-8"
-          >
-            {featuredWishlists.map((wishlist) => (
+          <InfiniteCarousel autoplay={true} delay={4000} className="mb-8">
+            {wishlists.map((wishlist) => (
               <WishlistCard
                 key={wishlist.id}
-                {...wishlist}
+                id={wishlist.id}
+                title={wishlist.title}
+                description={wishlist.description}
+                ngo_name={wishlist.ngo_name}
+                location={wishlist.location}
+                target_amount={wishlist.target_amount}
+                raised_amount={wishlist.raised_amount}
+                image={wishlist.image}
+                urgent={wishlist.urgent}
               />
             ))}
           </InfiniteCarousel>
@@ -119,12 +106,7 @@ export function FeaturedWishlistsSection() {
           viewport={{ once: true }}
           className="text-center"
         >
-          <Button
-            variant="outline"
-            size="lg"
-            asChild
-            className="group"
-          >
+          <Button variant="outline" size="lg" asChild className="group">
             <Link to="/browse">
               Browse All Wishlists
               <motion.div
@@ -139,5 +121,5 @@ export function FeaturedWishlistsSection() {
         </motion.div>
       </div>
     </section>
-  )
+  );
 }

@@ -1,89 +1,116 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/auth-context'
-import { donationAPI } from '@/lib/api'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Progress } from '@/components/ui/progress'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Calendar, DollarSign, Heart, TrendingUp, Users } from 'lucide-react'
-import { motion } from 'framer-motion'
-
-interface DonationWithDetails {
-  id: string
-  amount: number
-  status: string
-  created_at: string
-  gateway: string
-  wishlist_items: {
-    name: string
-    image_url: string
-  }
-  ngos: {
-    name: string
-    slug: string
-  }
-}
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { donationAPI } from "@/lib/api";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Calendar, DollarSign, Heart, TrendingUp, Users } from "lucide-react";
+import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase";
 
 export function DonorDashboard() {
-  const { user } = useAuth()
-  const [donations, setDonations] = useState<DonationWithDetails[]>([])
-  const [stats, setStats] = useState({ totalRaised: 0, totalDonations: 0 })
-  const [isLoading, setIsLoading] = useState(true)
+  const { user } = useAuth();
+  const [donations, setDonations] = useState<any[]>([]);
+  const [stats, setStats] = useState({ totalRaised: 0, totalDonations: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+  const [donor, setDonor] = useState<any>(null);
+
+  const fetchDonor = async (email: string) => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .single();
+
+    if (error) {
+      console.error("Error fetching user data:", error);
+      setDonor(null);
+    } else {
+      setDonor(data);
+    }
+    setIsLoading(false);
+    return data;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       if (user) {
         try {
-          const [donationsData, statsData] = await Promise.all([
-            donationAPI.getByUser(user.id),
-            donationAPI.getStats()
-          ])
-          setDonations(donationsData)
-          setStats(statsData)
+          const d = await fetchDonor(user.email);
+
+          const donationsData = await supabase
+            .from("donations")
+            .select("*,user_id(*),wishlist_id(*)")
+            .eq("user_id", d?.id)
+            .order("created_at", { ascending: false });
+
+          console.log("Donations data:", donationsData);
+
+          setDonations(donationsData.data ?? []);
+          const completedDonations = (donationsData.data ?? []).filter(
+            (d) => d.status === "completed"
+          );
         } catch (error) {
-          console.error('Error fetching dashboard data:', error)
+          console.error("Error fetching dashboard data:", error);
         } finally {
-          setIsLoading(false)
+          setIsLoading(false);
         }
       }
-    }
+    };
 
-    fetchData()
-  }, [user])
+    fetchData();
+  }, [user]);
 
-  const recentDonations = donations.slice(0, 5)
-  const completedDonations = donations.filter(d => d.status === 'completed')
-  const totalAmount = completedDonations.reduce((sum, d) => sum + Number(d.amount), 0)
+  const recentDonations = donations.slice(0, 5);
+  const completedDonations = donations.filter((d) => d.status === "completed");
+  const totalAmount = completedDonations.reduce(
+    (sum, d) => sum + Number(d.amount),
+    0
+  );
 
   const statsCards = [
     {
-      title: 'Total Donated',
-      value: `$${totalAmount.toLocaleString()}`,
+      title: "Total Donated",
+      value: `₹${totalAmount.toLocaleString()}`,
       icon: DollarSign,
-      color: 'text-green-600'
+      color: "text-green-600",
     },
     {
-      title: 'Donations Made',
+      title: "Donations Made",
       value: completedDonations.length.toString(),
       icon: Heart,
-      color: 'text-red-600'
+      color: "text-red-600",
     },
     {
-      title: 'This Month',
-      value: `$${(totalAmount * 0.3).toLocaleString()}`,
+      title: "This Month",
+      value: `₹${(totalAmount).toLocaleString()}`,
       icon: TrendingUp,
-      color: 'text-blue-600'
+      color: "text-blue-600",
     },
     {
-      title: 'NGOs Supported',
-      value: new Set(donations.map(d => d.ngos?.name)).size.toString(),
+      title: "NGOs Supported",
+      value: new Set(donations.map((d) => d?.wishlist_id?.ngo_name)).size.toString(),
       icon: Users,
-      color: 'text-purple-600'
-    }
-  ]
+      color: "text-purple-600",
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -91,12 +118,15 @@ export function DonorDashboard() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 animate-pulse rounded-lg" />
+              <div
+                key={i}
+                className="h-32 bg-gray-200 animate-pulse rounded-lg"
+              />
             ))}
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -107,8 +137,8 @@ export function DonorDashboard() {
         transition={{ duration: 0.5 }}
       >
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Welcome back, {user?.name}!
+          <h1 className="text-3xl font-bold text-gray-900 capitalize dark:text-white">
+            Welcome back, {donor?.name}!
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Track your donations and impact on our community
@@ -135,7 +165,9 @@ export function DonorDashboard() {
                         {stat.value}
                       </p>
                     </div>
-                    <div className={`p-3 rounded-full bg-gray-100 dark:bg-gray-800`}>
+                    <div
+                      className={`p-3 rounded-full bg-gray-100 dark:bg-gray-800`}
+                    >
                       <stat.icon className={`h-6 w-6 ${stat.color}`} />
                     </div>
                   </div>
@@ -150,7 +182,6 @@ export function DonorDashboard() {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="donations">Donation History</TabsTrigger>
-            <TabsTrigger value="receipts">Receipts</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -167,26 +198,37 @@ export function DonorDashboard() {
                   <div className="space-y-4">
                     {recentDonations.length > 0 ? (
                       recentDonations.map((donation) => (
-                        <div key={donation.id} className="flex items-center space-x-4">
+                        <div
+                          key={donation.id}
+                          className="flex items-center space-x-4"
+                        >
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={donation.wishlist_items?.image_url} />
+                            <AvatarImage
+                              src={donation.wishlist_items?.image_url}
+                            />
                             <AvatarFallback>
-                              {donation.ngos?.name?.charAt(0)}
+                              {donation.wishlist_id?.ngo_name?.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
                             <p className="text-sm font-medium">
-                              {donation.wishlist_items?.name}
+                              {donation.wishlist_id?.ngo_name}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {donation.ngos?.name}
+                              {donation.wishlist_id?.ngo_name}
                             </p>
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium">
-                              ${Number(donation.amount).toLocaleString()}
+                              ₹{Number(donation.amount).toLocaleString()}
                             </p>
-                            <Badge variant={donation.status === 'completed' ? 'default' : 'secondary'}>
+                            <Badge
+                              variant={
+                                donation.status === "completed"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
                               {donation.status}
                             </Badge>
                           </div>
@@ -227,7 +269,11 @@ export function DonorDashboard() {
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-blue-600">
-                          {new Set(donations.map(d => d.ngos?.name)).size}
+                          {
+                            new Set(
+                              donations.map((d) => d?.wishlist_id?.ngo_name)
+                            ).size
+                          }
                         </p>
                         <p className="text-xs text-gray-500">NGOs Supported</p>
                       </div>
@@ -252,7 +298,7 @@ export function DonorDashboard() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>NGO</TableHead>
-                      <TableHead>Item</TableHead>
+                      <TableHead>Wishlist Title</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Gateway</TableHead>
@@ -264,15 +310,23 @@ export function DonorDashboard() {
                         <TableCell>
                           {new Date(donation.created_at).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>{donation.ngos?.name}</TableCell>
-                        <TableCell>{donation.wishlist_items?.name}</TableCell>
-                        <TableCell>${Number(donation.amount).toLocaleString()}</TableCell>
+                        <TableCell>{donation?.wishlist_id?.ngo_name}</TableCell>
+                        <TableCell>{donation?.wishlist_id?.title}</TableCell>
                         <TableCell>
-                          <Badge variant={donation.status === 'completed' ? 'default' : 'secondary'}>
+                          ₹{Number(donation.amount).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              donation.status === "completed"
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
                             {donation.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="capitalize">{donation.gateway}</TableCell>
+                        <TableCell className="capitalize">Razorpay</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -280,39 +334,8 @@ export function DonorDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          <TabsContent value="receipts" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Receipts</CardTitle>
-                <CardDescription>
-                  Download your donation receipts
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {completedDonations.map((donation) => (
-                    <div key={donation.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{donation.ngos?.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(donation.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">${Number(donation.amount).toLocaleString()}</p>
-                        <Button variant="outline" size="sm">
-                          Download Receipt
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </motion.div>
     </div>
-  )
+  );
 }

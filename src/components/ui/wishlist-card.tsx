@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Heart, MapPin, Calendar, Users } from "lucide-react";
+import { Heart, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -8,10 +8,10 @@ interface WishlistCardProps {
   id: string;
   title: string;
   description: string;
-  ngoName: string;
+  ngo_name: string;
   location: string;
-  targetAmount: number;
-  raisedAmount: number;
+  target_amount: number;
+  raised_amount: number;
   image: string;
   urgent?: boolean;
 }
@@ -20,15 +20,17 @@ export function WishlistCard({
   id,
   title,
   description,
-  ngoName,
+  ngo_name,
   location,
-  targetAmount,
-  raisedAmount,
+  target_amount,
+  raised_amount,
   image,
   urgent = false,
 }: WishlistCardProps) {
-  const progress = (raisedAmount / targetAmount) * 100;
-  const remaining = targetAmount - raisedAmount;
+  const progress =
+  target_amount > 0 ? (raised_amount / target_amount) * 100 : 0;
+  const remaining = target_amount - raised_amount;
+ 
 
   return (
     <motion.div
@@ -54,6 +56,7 @@ export function WishlistCard({
       {/* Image */}
       <div className="relative h-48 overflow-hidden">
         <img
+          loading="lazy"
           src={image}
           alt={title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
@@ -85,7 +88,7 @@ export function WishlistCard({
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center space-x-1 text-muted-foreground">
             <Users className="w-4 h-4" />
-            <span>{ngoName}</span>
+            <span>{ngo_name}</span>
           </div>
           <div className="flex items-center space-x-1 text-muted-foreground">
             <MapPin className="w-4 h-4" />
@@ -97,10 +100,10 @@ export function WishlistCard({
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">
-              ₹{raisedAmount.toLocaleString()} raised
+              ₹{raised_amount?.toLocaleString()} raised
             </span>
             <span className="font-medium text-foreground">
-              ₹{remaining.toLocaleString()} needed
+              ₹{(target_amount-raised_amount).toLocaleString()} needed
             </span>
           </div>
           <div className="w-full bg-muted rounded-full h-2 overflow-hidden">

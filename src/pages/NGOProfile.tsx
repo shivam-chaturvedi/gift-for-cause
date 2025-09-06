@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { WishlistCard } from "@/components/ui/wishlist-card"
 
 const NGOProfile = () => {
-  const { slug } = useParams()
+  const { id } = useParams()
 
   // Mock data - in real app this would fetch based on slug
   const ngo = {

@@ -1,83 +1,268 @@
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Link, useParams, useSearchParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, Check, CreditCard, Shield, Heart, Gift } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { AuthGuard } from "@/components/auth-guard"
-import { useAuth } from "@/contexts/auth-context"
-import { useToast } from "@/components/ui/use-toast"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  Link,
+  useParams,
+  useSearchParams,
+  useNavigate,
+} from "react-router-dom";
+import { ArrowLeft, Check, Shield, Heart, Gift } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { AuthGuard } from "@/components/auth-guard";
+import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase";
 
-type DonationStep = "confirmation" | "details" | "payment" | "success"
+type DonationStep = "confirmation" | "details" | "payment" | "success";
+
+interface WishlistItem {
+  id: string;
+  name: string;
+  price: number;
+  qty: number;
+  funded_qty: number;
+}
+
+interface WishlistData {
+  id: string;
+  title: string;
+  description: string;
+  ngo_name: string;
+  image: string;
+  urgent: boolean;
+  target_amount: number;
+  raised_amount: number;
+  wishlist_items: WishlistItem[];
+}
 
 const Donate = () => {
-  const { id } = useParams()
-  const [searchParams] = useSearchParams()
-  const itemId = searchParams.get("item")
-  const { user } = useAuth()
-  const { toast } = useToast()
-  const navigate = useNavigate()
-  
-  const [currentStep, setCurrentStep] = useState<DonationStep>("confirmation")
+  const { id } = useParams();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const [currentStep, setCurrentStep] = useState<DonationStep>("confirmation");
   const [donationData, setDonationData] = useState({
-    amount: 500,
     donorName: "",
     donorEmail: "",
     message: "",
     isAnonymous: false,
-  })
+    items: [] as { id: string; qty: number; price: number }[],
+  });
+  const [wishlist, setWishlist] = useState<WishlistData | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  const [donor, setDonor] = useState<any>(null);
+
+  const fetchDonor = async (email: string) => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .single();
+
+    if (error) {
+      console.error("Error fetching user data:", error);
+      setDonor(null);
+    } else {
+      setDonor(data);
+    }
+    setLoading(false);
+  };
+
+  // Pre-fill donor info if logged in
   useEffect(() => {
     if (user) {
-      setDonationData(prev => ({
-        ...prev,
-        donorName: user.name,
-        donorEmail: user.email,
-      }))
-    }
-  }, [user])
+      fetchDonor(user.email || "");
 
-  // Mock item data - in real app this would come from API
-  const item = {
-    id: itemId || "1",
-    name: "School Notebooks & Stationery",
-    description: "Essential writing materials for 10 children",
-    price: 500,
-    image: "/api/placeholder/300/200",
-    ngo: "Education First Foundation",
-    category: "Education",
-    urgency: "high"
-  }
+      setDonationData((prev) => ({
+        ...prev,
+        donorName: user.name || "",
+        donorEmail: user.email || "",
+      }));
+    }
+  }, [user]);
+
+  // Fetch wishlist data from Supabase
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (!id) return;
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from("wishlists")
+        .select("*, wishlist_items(*)")
+        .eq("id", id)
+        .single();
+
+      if (error) {
+        toast({
+          title: "Error fetching wishlist",
+          description: error.message,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (data) {
+        setWishlist(data as WishlistData);
+        setLoading(false);
+      }
+    };
+
+    fetchWishlist();
+  }, [id]);
 
   const stepProgress = {
     confirmation: 25,
     details: 50,
     payment: 75,
-    success: 100
-  }
+    success: 100,
+  };
 
   const handleNextStep = () => {
-    const steps: DonationStep[] = ["confirmation", "details", "payment", "success"]
-    const currentIndex = steps.indexOf(currentStep)
-    if (currentIndex < steps.length - 1) {
-      setCurrentStep(steps[currentIndex + 1])
-    }
-  }
+    const steps: DonationStep[] = [
+      "confirmation",
+      "details",
+      "payment",
+      "success",
+    ];
+    const currentIndex = steps.indexOf(currentStep);
+    if (currentIndex < steps.length - 1)
+      setCurrentStep(steps[currentIndex + 1]);
+  };
 
   const handlePrevStep = () => {
-    const steps: DonationStep[] = ["confirmation", "details", "payment", "success"]
-    const currentIndex = steps.indexOf(currentStep)
-    if (currentIndex > 0) {
-      setCurrentStep(steps[currentIndex - 1])
+    const steps: DonationStep[] = [
+      "confirmation",
+      "details",
+      "payment",
+      "success",
+    ];
+    const currentIndex = steps.indexOf(currentStep);
+    if (currentIndex > 0) setCurrentStep(steps[currentIndex - 1]);
+  };
+
+  const toggleItemSelection = (item: WishlistItem) => {
+    setDonationData((prev) => {
+      const existing = prev.items.find((i) => i.id === item.id);
+      if (existing) {
+        // Remove item if already selected
+        return { ...prev, items: prev.items.filter((i) => i.id !== item.id) };
+      } else {
+        // Add item with qty 1
+        return {
+          ...prev,
+          items: [...prev.items, { id: item.id, qty: 1, price: item.price }],
+        };
+      }
+    });
+  };
+
+  const updateItemQty = (itemId: string, qty: number) => {
+    setDonationData((prev) => ({
+      ...prev,
+      items: prev.items.map((i) => (i.id === itemId ? { ...i, qty } : i)),
+    }));
+  };
+
+  const totalAmount = donationData.items.reduce(
+    (sum, item) => sum + item.qty * item.price,
+    0
+  );
+  const handlePayment = async () => {
+    if (totalAmount <= 0) {
+      toast({ title: "No items selected", variant: "destructive" });
+      return;
     }
-  }
+
+    try {
+      // Create order + donation record
+      const { data, error } = await supabase.functions.invoke("create-order", {
+        body: {
+          amount: totalAmount,
+          user: { id: donor.id, name: donor.name, email: donor.email },
+          wishlist_id: id,
+        },
+        headers:{
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        }
+      });
+      console.log("Order creation response:", data, error);
+
+      if (error || !data?.order) {
+        toast({
+          title: "Order creation failed",
+          description: error?.message || "Could not create Razorpay order",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const options = {
+        key: "rzp_test_VVaxe8RQLNF0DS",
+        amount: data.order.amount,
+        currency: data.order.currency,
+        name: "Gift For Cause",
+        description: "Support NGO's",
+        order_id: data.order.id,
+        handler: async (response: any) => {
+          // Verify payment and update donation
+          
+          const { error: verifyError } = await supabase.functions.invoke(
+            "verify-payment",
+            {
+              body: {
+                razorpay_order_id: data.order.id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              },
+            }
+          );
+
+          if (verifyError) {
+            toast({
+              title: "Verification failed",
+              description: verifyError.message,
+              variant: "destructive",
+            });
+            return;
+          }
+
+          toast({ title: "Donation completed successfully!" });
+        },
+        prefill: {
+          name: donor.name,
+          email: donor.email,
+          contact: "9999999999",
+        },
+        theme: { color: "#6366f1" },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      toast({
+        title: "Payment failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const renderStepContent = () => {
+    if (loading)
+      return <p className="text-center text-muted-foreground">Loading...</p>;
+    if (!wishlist)
+      return <p className="text-center text-red-500">Wishlist not found</p>;
+
     switch (currentStep) {
       case "confirmation":
         return (
@@ -87,36 +272,61 @@ const Donate = () => {
             className="space-y-6"
           >
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold text-foreground">Confirm Your Gift</h2>
-              <p className="text-muted-foreground">Review the item you're about to purchase</p>
+              <h2 className="text-2xl font-bold text-foreground">
+                Confirm Your Gift
+              </h2>
+              <p className="text-muted-foreground">
+                Select the items you want to donate
+              </p>
             </div>
 
-            <Card className="border-2 border-primary/20">
-              <CardContent className="p-6">
-                <div className="flex space-x-4">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-24 h-24 object-cover rounded-lg"
-                  />
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-foreground">{item.name}</h3>
-                      <Badge variant={item.urgency === "high" ? "destructive" : "secondary"}>
-                        {item.urgency === "high" ? "Urgent" : "Standard"}
+            <div className="space-y-4">
+              {wishlist.wishlist_items.map((item) => {
+                const selected = donationData.items.find(
+                  (i) => i.id === item.id
+                );
+                return (
+                  <Card
+                    onClick={() => toggleItemSelection(item)}
+                    key={item.id}
+                    className={`border-2 cursor-pointer ${
+                      selected ? "border-primary" : "border-primary/20"
+                    }`}
+                  >
+                    <CardContent className="p-6 flex justify-between items-center">
+                      <div>
+                        <h3 className="font-semibold text-foreground">
+                          {item.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {wishlist.description}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Price: ₹{item.price}
+                        </p>
+                        {selected && (
+                          <Input
+                            type="number"
+                            min={1}
+                            value={selected.qty}
+                            onChange={(e) =>
+                              updateItemQty(item.id, Number(e.target.value))
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-20 mt-2"
+                          />
+                        )}
+                      </div>
+                      <Badge
+                        variant={wishlist.urgent ? "destructive" : "secondary"}
+                      >
+                        {wishlist.urgent ? "Urgent" : "Standard"}
                       </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{item.description}</p>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        For: <span className="font-medium">{item.ngo}</span>
-                      </p>
-                      <p className="text-xl font-bold text-primary">₹{item.price}</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
 
             <div className="flex justify-between">
               <Button variant="outline" asChild>
@@ -125,12 +335,16 @@ const Donate = () => {
                   Back to Browse
                 </Link>
               </Button>
-              <Button variant="hero" onClick={handleNextStep}>
+              <Button
+                variant="hero"
+                onClick={handleNextStep}
+                disabled={donationData.items.length === 0}
+              >
                 Continue to Details
               </Button>
             </div>
           </motion.div>
-        )
+        );
 
       case "details":
         return (
@@ -140,8 +354,12 @@ const Donate = () => {
             className="space-y-6"
           >
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold text-foreground">Your Details</h2>
-              <p className="text-muted-foreground">Help us personalize your donation experience</p>
+              <h2 className="text-2xl font-bold text-foreground">
+                Your Details
+              </h2>
+              <p className="text-muted-foreground">
+                Help us personalize your donation experience
+              </p>
             </div>
 
             <div className="space-y-4">
@@ -151,7 +369,12 @@ const Donate = () => {
                   id="donorName"
                   placeholder="Enter your full name"
                   value={donationData.donorName}
-                  onChange={(e) => setDonationData(prev => ({ ...prev, donorName: e.target.value }))}
+                  onChange={(e) =>
+                    setDonationData((prev) => ({
+                      ...prev,
+                      donorName: e.target.value,
+                    }))
+                  }
                 />
               </div>
 
@@ -162,7 +385,12 @@ const Donate = () => {
                   type="email"
                   placeholder="Enter your email"
                   value={donationData.donorEmail}
-                  onChange={(e) => setDonationData(prev => ({ ...prev, donorEmail: e.target.value }))}
+                  onChange={(e) =>
+                    setDonationData((prev) => ({
+                      ...prev,
+                      donorEmail: e.target.value,
+                    }))
+                  }
                 />
               </div>
 
@@ -172,7 +400,12 @@ const Donate = () => {
                   id="message"
                   placeholder="Add a message for the NGO"
                   value={donationData.message}
-                  onChange={(e) => setDonationData(prev => ({ ...prev, message: e.target.value }))}
+                  onChange={(e) =>
+                    setDonationData((prev) => ({
+                      ...prev,
+                      message: e.target.value,
+                    }))
+                  }
                 />
               </div>
             </div>
@@ -182,16 +415,20 @@ const Donate = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <Button 
-                variant="hero" 
+              <Button
+                variant="hero"
                 onClick={handleNextStep}
-                disabled={!donationData.donorName || !donationData.donorEmail}
+                disabled={
+                  !donationData.donorName ||
+                  !donationData.donorEmail ||
+                  donationData.items.length === 0
+                }
               >
                 Continue to Payment
               </Button>
             </div>
           </motion.div>
-        )
+        );
 
       case "payment":
         return (
@@ -201,8 +438,12 @@ const Donate = () => {
             className="space-y-6"
           >
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold text-foreground">Secure Payment</h2>
-              <p className="text-muted-foreground">Complete your donation securely</p>
+              <h2 className="text-2xl font-bold text-foreground">
+                Secure Payment
+              </h2>
+              <p className="text-muted-foreground">
+                Complete your donation securely
+              </p>
             </div>
 
             <Card className="border border-border/50">
@@ -213,54 +454,42 @@ const Donate = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">{item.name}</span>
-                  <span className="font-semibold">₹{item.price}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Processing Fee</span>
-                  <span className="font-semibold">₹0</span>
-                </div>
+                {donationData.items.map((i) => {
+                  const itemData = wishlist.wishlist_items.find(
+                    (w) => w.id === i.id
+                  );
+                  return (
+                    <div
+                      key={i.id}
+                      className="flex justify-between items-center"
+                    >
+                      <span className="text-muted-foreground">
+                        {itemData?.name} x{i.qty}
+                      </span>
+                      <span className="font-semibold">₹{i.qty * i.price}</span>
+                    </div>
+                  );
+                })}
                 <Separator />
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span>Total</span>
-                  <span className="text-primary">₹{item.price}</span>
+                  <span className="text-primary">₹{totalAmount}</span>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Payment Methods */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-foreground">Choose Payment Method</h3>
-              <div className="grid gap-3">
-                {["Credit/Debit Card", "UPI", "Net Banking", "Wallet"].map((method) => (
-                  <motion.button
-                    key={method}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="p-4 border border-border rounded-lg hover:border-primary transition-colors text-left"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <CreditCard className="w-5 h-5 text-muted-foreground" />
-                      <span className="font-medium">{method}</span>
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
 
             <div className="flex justify-between">
               <Button variant="outline" onClick={handlePrevStep}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <Button variant="hero" onClick={handleNextStep} className="group">
+              <Button variant="hero" onClick={handlePayment}>
                 <Shield className="w-4 h-4 mr-2" />
                 Complete Donation
               </Button>
             </div>
           </motion.div>
-        )
+        );
 
       case "success":
         return (
@@ -279,7 +508,9 @@ const Donate = () => {
             </motion.div>
 
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold text-foreground">Thank You! 🎉</h2>
+              <h2 className="text-3xl font-bold text-foreground">
+                Thank You! 🎉
+              </h2>
               <p className="text-lg text-muted-foreground">
                 Your donation has been successfully processed
               </p>
@@ -287,17 +518,22 @@ const Donate = () => {
 
             <Card className="text-left">
               <CardContent className="p-6 space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Item</span>
-                  <span className="font-medium">{item.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Amount</span>
-                  <span className="font-medium">₹{item.price}</span>
-                </div>
+                {donationData.items.map((i) => {
+                  const itemData = wishlist.wishlist_items.find(
+                    (w) => w.id === i.id
+                  );
+                  return (
+                    <div key={i.id} className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        {itemData?.name}
+                      </span>
+                      <span className="font-medium">₹{i.qty * i.price}</span>
+                    </div>
+                  );
+                })}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">NGO</span>
-                  <span className="font-medium">{item.ngo}</span>
+                  <span className="font-medium">{wishlist.ngo_name}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Donor</span>
@@ -308,11 +544,8 @@ const Donate = () => {
 
             <div className="space-y-3">
               <p className="text-muted-foreground">
-                A receipt has been sent to <strong>{donationData.donorEmail}</strong>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                The NGO will receive your item within 3-5 business days. 
-                You'll get updates on the impact your gift creates.
+                A receipt has been sent to{" "}
+                <strong>{donationData.donorEmail}</strong>
               </p>
             </div>
 
@@ -331,12 +564,12 @@ const Donate = () => {
               </Button>
             </div>
           </motion.div>
-        )
+        );
 
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
     <AuthGuard requireAuth={true}>
@@ -357,14 +590,12 @@ const Donate = () => {
 
           {/* Main Content */}
           <Card className="shadow-strong border-border/50 backdrop-blur-sm">
-            <CardContent className="p-8">
-              {renderStepContent()}
-            </CardContent>
+            <CardContent className="p-8">{renderStepContent()}</CardContent>
           </Card>
         </div>
       </div>
     </AuthGuard>
-  )
-}
+  );
+};
 
-export default Donate
+export default Donate;

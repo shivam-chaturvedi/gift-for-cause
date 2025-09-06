@@ -44,7 +44,7 @@ const App = () => (
                   <Route path="/browse" element={<BrowseWishlists />} />
                   <Route path="/wishlist/:id" element={<WishlistDetails />} />
                   <Route path="/ngo-partners" element={<NGOPartners />} />
-                  <Route path="/ngo/:slug" element={<NGOProfile />} />
+                  <Route path="/ngo/:id" element={<NGOProfile />} />
                   <Route path="/success-stories" element={<SuccessStories />} />
                   <Route path="/faq" element={<FAQ />} />
                   <Route path="/contact" element={<Contact />} />
