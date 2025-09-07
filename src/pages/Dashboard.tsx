@@ -20,12 +20,22 @@ export default function Dashboard() {
       .eq("email", email)
       .single();
 
-    if (error) {
-      console.error("Error fetching user data:", error);
-      setUser(null);
+    if (data === null || error) {
+      const { data, error } = await supabase
+        .from("ngo")
+        .select("*")
+        .eq("email", email)
+        .single();
+
+      setUser(data);
+      if (error) {
+        console.error("Error fetching NGO data:", error);
+        navigate("/login");
+      }
     } else {
       setUser(data);
     }
+
     setIsLoading(false);
   };
 

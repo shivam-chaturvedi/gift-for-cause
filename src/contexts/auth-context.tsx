@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(data.user);
   };
 
-  const signup = async (email: string, password: string, name: string) => {
+  const signup = async (email: string, password: string, name: string,role:string) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
 

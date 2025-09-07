@@ -60,6 +60,7 @@ const WishlistDetails = () => {
     id: id,
     title: wishlistData?.title,
     description: wishlistData?.description,
+    ngoId: wishlistData?.ngo_id,
     ngoName: wishlistData?.ngo_name,
     ngoDescription:
       "A verified NGO working for 15+ years in rural education across India.",
@@ -313,7 +314,7 @@ const WishlistDetails = () => {
                 </p>
                 <Button variant="outline" size="sm" asChild className="w-full">
                   <Link
-                    to={`/ngo/${wishlist.ngoName
+                    to={`/ngo/${wishlist.ngoId
                       .toLowerCase()
                       .replace(/\s+/g, "-")}`}
                   >

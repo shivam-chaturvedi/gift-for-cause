@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, X } from "lucide-react";
+import { useToast } from "./use-toast";
 
 interface WishlistItem {
   name: string;
@@ -19,6 +20,7 @@ interface WishlistFormProps {
 }
 
 export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
+  const { toast } = useToast();
   const [wishlistData, setWishlistData] = useState({
     title: "",
     description: "",
@@ -158,7 +160,11 @@ export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
       setImageFile(null);
       setImagePreview(null);
 
-      alert("Wishlist created successfully!");
+      toast({
+        title: "Success",
+        description: "Wishlist created successfully!",
+      });
+      onClose();
     } catch (error) {
       console.error("Error creating wishlist:", error);
       alert("Failed to create wishlist");

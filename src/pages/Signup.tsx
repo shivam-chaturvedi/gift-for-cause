@@ -17,6 +17,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import ImageUploader from "@/components/ui/image-uploader";
+import { supabase } from "@/lib/supabase";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -53,17 +54,39 @@ const Signup = () => {
       role,
     }));
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signup(
-        formData.email,
-        formData.password,
-        formData.name,
-        formData.role,
-        formData.role === "ngo"
-          ? {
+      if (formData.role !== "ngo") {
+        // Normal user signup
+        await signup(
+          formData.email,
+          formData.password,
+          formData.name,
+          formData.role
+        );
+      } else {
+        // NGO signup
+        const { data: authData, error: authError } = await supabase.auth.signUp(
+          {
+            email: formData.email,
+            password: formData.password,
+          }
+        );
+
+        if (authError) throw authError;
+
+        const userId = authData.user?.id;
+        if (!userId) throw new Error("User ID not returned from auth signup");
+
+        const { data: ngoData, error: ngoError } = await supabase
+          .from("ngo")
+          .insert([
+            {
+              id: userId, // link to auth.users
+              name: formData.name,
+              email: formData.email,
+              role: formData.role,
               description: formData.description,
               long_description: formData.long_description,
               location: formData.location,
@@ -71,14 +94,17 @@ const Signup = () => {
               established_year: formData.established_year,
               website: formData.website,
               image: formData.image,
-            }
-          : {}
-      );
-      toast({
-        title: "Signup successful!",
-        description: "Welcome! You are now registered.",
-      });
-      navigate("/");
+            },
+          ]);
+
+        if (ngoError) throw ngoError;
+
+        toast({
+          title: "Signup successful!",
+          description: "Welcome! You are now registered.",
+        });
+        navigate("/");
+      }
     } catch (error: any) {
       toast({
         title: "Signup failed",
@@ -273,7 +299,13 @@ const Signup = () => {
                     <Label htmlFor="image">NGO Logo / Image</Label>
                     <ImageUploader
                       initialImage={formData.image}
-                      onUploadComplete={(url) => handleChange("image", url)}
+                      onUploadComplete={(url) => {
+                        handleChange("image", url);
+                        toast({
+                          title: "Image uploaded",
+                          description: "NGO image uploaded successfully",
+                        });
+                      }}
                     />
                   </div>
                 </>

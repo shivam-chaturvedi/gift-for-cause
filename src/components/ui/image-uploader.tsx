@@ -9,47 +9,50 @@ interface ImageUploaderProps {
   initialImage?: string;
 }
 
-export default function ImageUploader({ onUploadComplete, initialImage }: ImageUploaderProps) {
+export default function ImageUploader({
+  onUploadComplete,
+  initialImage,
+}: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | undefined>(initialImage);
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      if (!file) return;
 
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-    const filePath = `ngo_images/${fileName}`;
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
 
-    setUploading(true);
+      setUploading(true);
 
-    const { data, error } = await supabase.storage
-      .from("ngo_images")
-      .upload(filePath, file, { cacheControl: "3600", upsert: false });
+      const { data, error } = await supabase.storage
+        .from("ngo_images")
+        .upload(filePath, file, { cacheControl: "3600", upsert: false });
 
-    if (error) {
-      console.error("Upload error:", error);
+      if (error) {
+        console.error("Upload error:", error);
+        setUploading(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage
+        .from("ngo_images")
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl;
+
+      setPreview(publicUrl);
+      onUploadComplete(publicUrl); // Pass URL back to parent form
       setUploading(false);
-      return;
-    }
+    },
+    [onUploadComplete]
+  );
 
-    // Get public URL
-    const { publicUrl, error: urlError } = supabase.storage
-      .from("ngo_images")
-      .getPublicUrl(filePath);
-
-    if (urlError) {
-      console.error("Public URL error:", urlError);
-      setUploading(false);
-      return;
-    }
-
-    setPreview(publicUrl);
-    onUploadComplete(publicUrl); // Pass URL back to parent form
-    setUploading(false);
-  }, [onUploadComplete]);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { "image/*": [] } });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { "image/*": [] },
+  });
 
   return (
     <div
@@ -66,7 +69,11 @@ export default function ImageUploader({ onUploadComplete, initialImage }: ImageU
           <p>Uploading...</p>
         </div>
       ) : preview ? (
-        <img src={preview} alt="Preview" className="mx-auto max-h-48 object-contain rounded-md" />
+        <img
+          src={preview}
+          alt="Preview"
+          className="mx-auto max-h-48 object-contain rounded-md"
+        />
       ) : (
         <p>Drag & drop an image here, or click to select</p>
       )}

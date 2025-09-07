@@ -111,10 +111,11 @@ export function NGODashboard() {
   // Fetch NGO user data
   const fetchUser = async (email: string) => {
     const { data, error } = await supabase
-      .from("users")
+      .from("ngo")
       .select("*")
       .eq("email", email)
       .single();
+      
     if (error) {
       console.error("Error fetching user data:", error);
       setNgo(null);

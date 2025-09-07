@@ -1,79 +1,82 @@
 import { useParams, Link } from "react-router-dom"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { ArrowLeft, MapPin, Star, CheckCircle, Users, Calendar, Globe, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { WishlistCard } from "@/components/ui/wishlist-card"
+import { supabase } from "@/lib/supabase"
+
+interface NGO {
+  id: string
+  name: string
+  description?: string
+  long_description?: string
+  location?: string
+  category?: string
+  verified?: boolean
+  rating?: number
+  established_year?: number
+  website?: string
+  email?: string
+  image?: string
+  stats?: Record<string, string>
+}
 
 const NGOProfile = () => {
-  const { id } = useParams()
+  const { id } = useParams<{ id: string }>()
+  const [ngo, setNgo] = useState<NGO | null>(null)
+  const [wishlists, setWishlists] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Mock data - in real app this would fetch based on slug
-  const ngo = {
-    id: "education-first-foundation",
-    name: "Education First Foundation",
-    description: "Dedicated to providing quality education to underprivileged children in rural areas through innovative programs and sustainable solutions.",
-    longDescription: `Education First Foundation has been working tirelessly for over 15 years to bridge the education gap in rural India. Our mission is to ensure that every child, regardless of their background, has access to quality education.
+  useEffect(() => {
+    const fetchNGO = async () => {
+      try {
+        if (!id) return
 
-We believe that education is the most powerful tool for breaking the cycle of poverty. Through our various programs, we provide not just books and supplies, but also trained teachers, digital learning tools, and infrastructure support to schools in remote areas.
+        // Fetch NGO by id
+        const { data: ngoData, error: ngoError } = await supabase
+          .from("ngo")
+          .select("*")
+          .eq("id", id)
+          .single()
 
-Our holistic approach includes teacher training, community engagement, and long-term sustainability planning to ensure lasting impact in the communities we serve.`,
-    location: "Rajasthan, India",
-    category: "Education",
-    verified: true,
-    rating: 4.8,
-    establishedYear: 2008,
-    website: "https://educationfirst.org",
-    email: "contact@educationfirst.org",
-    image: "/api/placeholder/600/300",
-    stats: {
-      beneficiaries: "15,000+",
-      projects: "150+", 
-      volunteers: "200+",
-      impact: "50+ villages"
-    },
-    activeWishlists: [
-      {
-        id: "1",
-        title: "School Supplies for Rural Children",
-        description: "Help provide essential learning materials for underprivileged children in rural areas.",
-        ngoName: "Education First Foundation",
-        location: "Rajasthan, India",
-        occasion: "Back to School",
-        targetAmount: 50000,
-        raisedAmount: 32000,
-        image: "/api/placeholder/400/300",
-        urgent: true,
-      },
-      {
-        id: "7",
-        title: "Digital Learning Lab Setup",
-        description: "Establish computer labs in rural schools to bridge the digital divide.",
-        ngoName: "Education First Foundation", 
-        location: "Rajasthan, India",
-        occasion: "Digital India",
-        targetAmount: 80000,
-        raisedAmount: 45000,
-        image: "/api/placeholder/400/300",
+        if (ngoError) throw ngoError
+
+        setNgo(ngoData)
+
+        // Fetch wishlists linked to this NGO
+        const { data: wishlistData, error: wishlistError } = await supabase
+          .from("wishlists")
+          .select("*")
+          .eq("ngo_id", id)
+
+        if (wishlistError) throw wishlistError
+        setWishlists(wishlistData || [])
+      } catch (err) {
+        console.error("Error fetching NGO profile:", err)
+      } finally {
+        setLoading(false)
       }
-    ],
-    recentUpdates: [
-      {
-        date: "2024-01-20",
-        title: "New School Opened in Jaisalmer",
-        description: "Successfully opened our 50th partner school, now serving 500 more children."
-      },
-      {
-        date: "2024-01-15",
-        title: "Teacher Training Program Completed",
-        description: "Trained 25 teachers in modern teaching methodologies and digital tools."
-      },
-      {
-        date: "2024-01-10",
-        title: "Annual Impact Report Released",
-        description: "Published our comprehensive impact report showing 95% literacy improvement in partner schools."
-      }
-    ]
+    }
+
+    fetchNGO()
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">Loading NGO profile...</p>
+      </div>
+    )
+  }
+
+  if (!ngo) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">NGO not found.</p>
+      </div>
+    )
   }
 
   return (
@@ -96,10 +99,9 @@ Our holistic approach includes teacher training, community engagement, and long-
           transition={{ duration: 0.6 }}
           className="text-center space-y-8 mb-12"
         >
-          {/* Hero Image */}
           <div className="relative h-64 md:h-80 rounded-2xl overflow-hidden">
             <img
-              src={ngo.image}
+              src={ngo.image || "/api/placeholder/600/300"}
               alt={ngo.name}
               className="w-full h-full object-cover"
             />
@@ -112,24 +114,30 @@ Our holistic approach includes teacher training, community engagement, and long-
                     Verified NGO
                   </Badge>
                 )}
-                <Badge variant="secondary">
-                  {ngo.category}
-                </Badge>
+                {ngo.category && (
+                  <Badge variant="secondary">{ngo.category}</Badge>
+                )}
               </div>
               <h1 className="text-3xl md:text-5xl font-bold mb-2">{ngo.name}</h1>
               <div className="flex items-center justify-center space-x-6 text-sm">
-                <div className="flex items-center space-x-1">
-                  <MapPin className="w-4 h-4" />
-                  <span>{ngo.location}</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Star className="w-4 h-4 text-accent fill-current" />
-                  <span>{ngo.rating} rating</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Calendar className="w-4 h-4" />
-                  <span>Est. {ngo.establishedYear}</span>
-                </div>
+                {ngo.location && (
+                  <div className="flex items-center space-x-1">
+                    <MapPin className="w-4 h-4" />
+                    <span>{ngo.location}</span>
+                  </div>
+                )}
+                {ngo.rating && (
+                  <div className="flex items-center space-x-1">
+                    <Star className="w-4 h-4 text-accent fill-current" />
+                    <span>{ngo.rating} rating</span>
+                  </div>
+                )}
+                {ngo.established_year && (
+                  <div className="flex items-center space-x-1">
+                    <Calendar className="w-4 h-4" />
+                    <span>Est. {ngo.established_year}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -139,47 +147,51 @@ Our holistic approach includes teacher training, community engagement, and long-
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* About */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="space-y-4"
-            >
-              <h2 className="text-2xl font-semibold text-foreground">About Us</h2>
-              <div className="prose prose-gray max-w-none">
-                {ngo.longDescription.split('\n\n').map((paragraph, index) => (
-                  <p key={index} className="text-muted-foreground leading-relaxed mb-4">
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            </motion.div>
+            {ngo.long_description && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="space-y-4"
+              >
+                <h2 className="text-2xl font-semibold text-foreground">About Us</h2>
+                <div className="prose prose-gray max-w-none">
+                  {ngo.long_description.split("\n\n").map((p, i) => (
+                    <p key={i} className="text-muted-foreground leading-relaxed mb-4">
+                      {p}
+                    </p>
+                  ))}
+                </div>
+              </motion.div>
+            )}
 
             {/* Impact Stats */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="space-y-4"
-            >
-              <h2 className="text-2xl font-semibold text-foreground">Our Impact</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {Object.entries(ngo.stats).map(([key, value], index) => (
-                  <motion.div
-                    key={key}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
-                    className="text-center p-4 bg-muted/30 rounded-xl"
-                  >
-                    <div className="text-2xl font-bold text-primary">{value}</div>
-                    <div className="text-sm text-muted-foreground capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+            {ngo.stats && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="space-y-4"
+              >
+                <h2 className="text-2xl font-semibold text-foreground">Our Impact</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  {Object.entries(ngo.stats).map(([key, value], index) => (
+                    <motion.div
+                      key={key}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
+                      className="text-center p-4 bg-muted/30 rounded-xl"
+                    >
+                      <div className="text-2xl font-bold text-primary">{value}</div>
+                      <div className="text-sm text-muted-foreground capitalize">
+                        {key.replace(/_/g, " ")}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
 
             {/* Active Wishlists */}
             <motion.div
@@ -190,44 +202,21 @@ Our holistic approach includes teacher training, community engagement, and long-
             >
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-semibold text-foreground">Active Wishlists</h2>
-                <Button variant="outline" asChild>
-                  <Link to={`/browse?ngo=${ngo.name}`}>
-                    View All
-                  </Link>
-                </Button>
               </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                {ngo.activeWishlists.map((wishlist) => (
-                  <WishlistCard key={wishlist.id} {...wishlist} />
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Recent Updates */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="space-y-4"
-            >
-              <h2 className="text-2xl font-semibold text-foreground">Recent Updates</h2>
-              <div className="space-y-4">
-                {ngo.recentUpdates.map((update, index) => (
-                  <div key={index} className="p-4 bg-muted/30 rounded-lg">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-medium text-foreground">{update.title}</h3>
-                      <span className="text-sm text-muted-foreground">{update.date}</span>
-                    </div>
-                    <p className="text-muted-foreground">{update.description}</p>
-                  </div>
-                ))}
-              </div>
+              {wishlists.length > 0 ? (
+                <div className="grid md:grid-cols-2 gap-6">
+                  {wishlists.map((wishlist) => (
+                    <WishlistCard key={wishlist.id} {...wishlist} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground">No active wishlists.</p>
+              )}
             </motion.div>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Contact Info */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -236,41 +225,36 @@ Our holistic approach includes teacher training, community engagement, and long-
             >
               <h3 className="text-lg font-semibold text-foreground">Contact Information</h3>
               <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <Globe className="w-4 h-4 text-muted-foreground" />
-                  <a 
-                    href={ngo.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    {ngo.website}
-                  </a>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <a 
-                    href={`mailto:${ngo.email}`}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    {ngo.email}
-                  </a>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">{ngo.location}</span>
-                </div>
+                {ngo.website && (
+                  <div className="flex items-center space-x-3">
+                    <Globe className="w-4 h-4 text-muted-foreground" />
+                    <a href={ngo.website} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                      {ngo.website}
+                    </a>
+                  </div>
+                )}
+                {ngo.email && (
+                  <div className="flex items-center space-x-3">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <a href={`mailto:${ngo.email}`} className="text-sm text-primary hover:underline">
+                      {ngo.email}
+                    </a>
+                  </div>
+                )}
+                {ngo.location && (
+                  <div className="flex items-center space-x-3">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">{ngo.location}</span>
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 space-y-3">
                 <Button variant="hero" className="w-full" asChild>
-                  <Link to={`/browse?ngo=${ngo.name}`}>
+                  <Link to={`/browse?ngo=${ngo.id}`}>
                     <Users className="w-4 h-4 mr-2" />
                     Support This NGO
                   </Link>
-                </Button>
-                <Button variant="outline" className="w-full">
-                  Share Profile
                 </Button>
               </div>
             </motion.div>
