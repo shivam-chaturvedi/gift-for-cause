@@ -1,45 +1,49 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Heart, MapPin, Calendar } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { supabase } from "@/lib/supabase"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Heart, MapPin, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 
 interface Story {
-  id: string
-  created_at: string
-  title: string
-  story_text: string
-  impact_metrics?: string
-  media_url?: string // can be image or video
-  ngo_id: string
+  id: string;
+  created_at: string;
+  title: string;
+  story_text: string;
+  impact_metrics?: string;
+  media_url?: string; // can be image or video
+  ngo_id: string;
 }
 
 const SuccessStories = () => {
-  const [stories, setStories] = useState<Story[]>([])
-  const [visibleStories, setVisibleStories] = useState(3)
-  const [loading, setLoading] = useState(true)
+  const [stories, setStories] = useState<Story[]>([]);
+  const [visibleStories, setVisibleStories] = useState(3);
+  const [loading, setLoading] = useState(true);
+
+  const navigate = useNavigate();
 
   // Fetch stories from Supabase
   useEffect(() => {
     const fetchStories = async () => {
-      setLoading(true)
+      setLoading(true);
       const { data, error } = await supabase
         .from("success_stories")
         .select("*")
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false });
 
+      console.log("Fetched success stories:", data);
       if (error) {
-        console.error("Error fetching stories:", error)
+        console.error("Error fetching stories:", error);
       } else {
-        setStories(data || [])
+        setStories(data || []);
       }
-      setLoading(false)
-    }
+      setLoading(false);
+    };
 
-    fetchStories()
-  }, [])
+    fetchStories();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,7 +62,7 @@ const SuccessStories = () => {
               </span>
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Real stories of how celebrations became catalysts for change. 
+              Real stories of how celebrations became catalysts for change.
               Discover how ordinary moments created extraordinary impact.
             </p>
           </motion.div>
@@ -69,7 +73,9 @@ const SuccessStories = () => {
       <section className="py-16">
         <div className="container mx-auto px-4">
           {loading ? (
-            <p className="text-center text-muted-foreground">Loading stories...</p>
+            <p className="text-center text-muted-foreground">
+              Loading stories...
+            </p>
           ) : stories.length > 0 ? (
             <div className="grid gap-12">
               {stories.slice(0, visibleStories).map((story, index) => (
@@ -181,7 +187,7 @@ const SuccessStories = () => {
               Create Your Own Success Story
             </h2>
             <p className="text-lg text-muted-foreground">
-              Every celebration is an opportunity to create lasting change. 
+              Every celebration is an opportunity to create lasting change.
               Start your journey today and become part of our impact community.
             </p>
             <motion.div
@@ -189,7 +195,12 @@ const SuccessStories = () => {
               whileTap={{ scale: 0.95 }}
               className="inline-block"
             >
-              <button className="hero-gradient text-white px-8 py-4 rounded-2xl font-semibold text-lg shadow-medium hover:shadow-strong transition-all duration-300">
+              <button
+                onClick={() => {
+                  navigate("/dashboard");
+                }}
+                className="hero-gradient text-white px-8 py-4 rounded-2xl font-semibold text-lg shadow-medium hover:shadow-strong transition-all duration-300"
+              >
                 Start Making Impact
               </button>
             </motion.div>
@@ -197,7 +208,7 @@ const SuccessStories = () => {
         </div>
       </section>
     </div>
-  )
-}
+  );
+};
 
-export default SuccessStories
+export default SuccessStories;

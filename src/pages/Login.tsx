@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/components/ui/use-toast";
 import { Heart, Loader2 } from "lucide-react";
+import { OAuthLogin } from "@/components/ui/oauth-login";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, user, isLoading } = useAuth();
+  const { login, user, isLoading, resetPassword } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -37,6 +38,10 @@ const Login = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    navigate("/forgot-password");
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <motion.div
@@ -52,7 +57,9 @@ const Login = () => {
             </div>
           </div>
           <h1 className="text-3xl font-bold">Welcome Back</h1>
-          <p className="text-muted-foreground">Sign in to continue making impact</p>
+          <p className="text-muted-foreground">
+            Sign in to continue making impact
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -76,12 +83,20 @@ const Login = () => {
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
               />
             </div>
           </div>
-
-          <Button variant="hero" className="w-full" disabled={isLoading}>
+          <div className="flex justify-end">
+            <Button variant="link" type="button" onClick={handleForgotPassword}>
+              Forgot Password?
+            </Button>
+          </div>
+          <Button
+            variant="hero"
+            type="submit"
+            className="w-full"
+            disabled={isLoading}
+          >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -92,11 +107,10 @@ const Login = () => {
             )}
           </Button>
 
+          <OAuthLogin />
           <div className="text-center">
-            <Button variant="link" asChild>
-              <Link to="/signup">
-                Don't have an account? Sign up
-              </Link>
+            <Button variant="link" type="button" asChild>
+              <Link to="/signup">Don't have an account? Sign up</Link>
             </Button>
           </div>
         </form>

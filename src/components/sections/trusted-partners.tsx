@@ -35,7 +35,8 @@ export function TrustedPartnersSection() {
         setLoading(false);
         return;
       }
-      setNgos(data as NGO[]);
+
+      setNgos(data.filter((n) => n?.verified) as NGO[]);
       setLoading(false);
     };
 

@@ -1,138 +1,230 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/auth-context'
-import { adminAPI, donationAPI } from '@/lib/api'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Progress } from '@/components/ui/progress'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, DollarSign, Users, Shield, TrendingUp, AlertTriangle } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { supabase } from "@/lib/supabase";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { DollarSign, TrendingUp, Shield, AlertTriangle } from "lucide-react";
+import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 interface PendingNGO {
-  id: string
-  name: string
-  reg_no: string
-  mission: string
-  category: string
-  created_at: string
-  contact_email: string
+  id: string;
+  name: string;
+  category: string;
+  email: string;
+  created_at: string;
 }
 
 interface PendingStory {
-  id: string
-  title: string
-  story_text: string
-  created_at: string
-  ngos: {
-    name: string
-  }
+  id: string;
+  title: string;
+  story_text: string;
+  created_at: string;
+  ngo_id: {
+    name: string;
+  };
 }
 
 interface AuditLog {
-  id: string
-  action: string
-  entity: string
-  status: string
-  created_at: string
+  id: string;
+  action: string;
+  entity: string;
+  status: string;
+  created_at: string;
   users: {
-    name: string
-  }
+    name: any;
+  };
 }
 
 export function AdminDashboard() {
-  const { user } = useAuth()
-  const [pendingNGOs, setPendingNGOs] = useState<PendingNGO[]>([])
-  const [pendingStories, setPendingStories] = useState<PendingStory[]>([])
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
-  const [stats, setStats] = useState({ totalRaised: 0, totalDonations: 0 })
-  const [isLoading, setIsLoading] = useState(true)
+  const { user } = useAuth();
+  const [pendingNGOs, setPendingNGOs] = useState<PendingNGO[]>([]);
+  const [pendingStories, setPendingStories] = useState<PendingStory[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [stats, setStats] = useState({ totalRaised: 0, totalDonations: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [ngosData, storiesData, logsData, statsData] = await Promise.all([
-          adminAPI.getPendingNGOs(),
-          adminAPI.getPendingStories(),
-          adminAPI.getAuditLogs(),
-          donationAPI.getStats()
-        ])
-        setPendingNGOs(ngosData)
-        setPendingStories(storiesData)
-        setAuditLogs(logsData)
-        setStats(statsData)
-      } catch (error) {
-        console.error('Error fetching admin dashboard data:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
+        const { data: ngosData, error: ngosError } = await supabase
+          .from("ngo")
+          .select("id, name, category, created_at, email")
+          .eq("verified", false);
 
-    fetchData()
-  }, [])
+        if (ngosError) throw ngosError;
+        setPendingNGOs(ngosData || []);
+
+        // Pending Stories (approved = false)
+        const { data: storiesData, error: storiesError } = await supabase
+          .from("success_stories")
+          .select("id, title, story_text, created_at, ngo_id(name)")
+          .eq("approved", false);
+        if (storiesError) throw storiesError;
+        setPendingStories(
+          (storiesData || []).map((story: any) => ({
+            ...story,
+            ngo_id: Array.isArray(story.ngo_id)
+              ? story.ngo_id[0]
+              : story.ngo_id,
+          }))
+        );
+
+        // Audit Logs
+        const { data: logsData, error: logsError } = await supabase
+          .from("audit_logs")
+          .select("id, action, entity, status, created_at, users(name)")
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        if (logsError) throw logsError;
+        setAuditLogs(
+          (logsData || []).map((log: any) => ({
+            ...log,
+            users: Array.isArray(log.users) ? log.users[0] : log.users,
+          }))
+        );
+
+        // Stats (aggregate donations)
+        const { data: donationsData, error: donationsError } = await supabase
+          .from("donations")
+          .select("amount");
+        if (donationsError) throw donationsError;
+
+        const totalRaised =
+          donationsData?.reduce((sum, d) => sum + (d.amount as number), 0) || 0;
+        const totalDonations = donationsData?.length || 0;
+        setStats({ totalRaised, totalDonations });
+      } catch (error) {
+        console.error("Error fetching admin dashboard data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleVerifyNGO = async (ngoId: string) => {
     try {
-      await adminAPI.createAuditLog({
-        user_id: user?.id || '',
-        action: 'ngo_verified',
-        entity: 'ngos',
-        status: 'success',
-        details: { ngo_id: ngoId }
-      })
-      setPendingNGOs(prev => prev.filter(ngo => ngo.id !== ngoId))
+      const { error } = await supabase
+        .from("ngo")
+        .update({ verified: true })
+        .eq("id", ngoId);
+      if (error) throw error;
+
+      setPendingNGOs((prev) => prev.filter((ngo) => ngo.id !== ngoId));
+
+      await supabase.from("audit_logs").insert({
+        user_id: user?.id,
+        action: "ngo_verified",
+        entity: "ngo",
+        status: "success",
+        details: { ngo_id: ngoId },
+      });
+
+      toast({
+        title: "NGO Verified",
+        description: "The NGO has been successfully verified.",
+        duration: 5000,
+      });
+      // Audit Logs
+      const { data: logsData, error: logsError } = await supabase
+        .from("audit_logs")
+        .select("id, action, entity, status, created_at, users(name)")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (logsError) throw logsError;
+      setAuditLogs(
+        (logsData || []).map((log: any) => ({
+          ...log,
+          users: Array.isArray(log.users) ? log.users[0] : log.users,
+        }))
+      );
     } catch (error) {
-      console.error('Error verifying NGO:', error)
+      console.error("Error verifying NGO:", error);
     }
-  }
+  };
 
   const handleApproveStory = async (storyId: string) => {
     try {
-      await adminAPI.createAuditLog({
-        user_id: user?.id || '',
-        action: 'story_approved',
-        entity: 'success_stories',
-        status: 'success',
-        details: { story_id: storyId }
-      })
-      setPendingStories(prev => prev.filter(story => story.id !== storyId))
+      const { error } = await supabase
+        .from("success_stories")
+        .update({ approved: true })
+        .eq("id", storyId);
+      if (error) throw error;
+
+      setPendingStories((prev) => prev.filter((story) => story.id !== storyId));
+
+      await supabase.from("audit_logs").insert({
+        user_id: user?.id,
+        action: "story_approved",
+        entity: "success_stories",
+        status: "success",
+        details: { story_id: storyId },
+      });
+      toast({
+        title: "Story Approved",
+        description: "The success story has been successfully approved.",
+        duration: 5000,
+      });
+      // Audit Logs
+      const { data: logsData, error: logsError } = await supabase
+        .from("audit_logs")
+        .select("id, action, entity, status, created_at, users(name)")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (logsError) throw logsError;
+      setAuditLogs(
+        (logsData || []).map((log: any) => ({
+          ...log,
+          users: Array.isArray(log.users) ? log.users[0] : log.users,
+        }))
+      );
     } catch (error) {
-      console.error('Error approving story:', error)
+      console.error("Error approving story:", error);
     }
-  }
+  };
 
   const statsCards = [
     {
-      title: 'Total Platform Raised',
-      value: `$${stats.totalRaised.toLocaleString()}`,
+      title: "Total Platform Raised",
+      value: `₹${stats.totalRaised.toLocaleString()}`,
       icon: DollarSign,
-      color: 'text-green-600'
+      color: "text-green-600",
     },
     {
-      title: 'Total Donations',
+      title: "Total Donations",
       value: stats.totalDonations.toString(),
       icon: TrendingUp,
-      color: 'text-blue-600'
+      color: "text-blue-600",
     },
     {
-      title: 'Pending NGO Approvals',
+      title: "Pending NGO Approvals",
       value: pendingNGOs.length.toString(),
       icon: Shield,
-      color: 'text-orange-600'
+      color: "text-orange-600",
     },
     {
-      title: 'Pending Stories',
+      title: "Pending Stories",
       value: pendingStories.length.toString(),
       icon: AlertTriangle,
-      color: 'text-red-600'
-    }
-  ]
+      color: "text-red-600",
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -140,12 +232,15 @@ export function AdminDashboard() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 animate-pulse rounded-lg" />
+              <div
+                key={i}
+                className="h-32 bg-gray-200 animate-pulse rounded-lg"
+              />
             ))}
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -184,7 +279,7 @@ export function AdminDashboard() {
                         {stat.value}
                       </p>
                     </div>
-                    <div className={`p-3 rounded-full bg-gray-100 dark:bg-gray-800`}>
+                    <div className="p-3 rounded-full bg-gray-100 dark:bg-gray-800">
                       <stat.icon className={`h-6 w-6 ${stat.color}`} />
                     </div>
                   </div>
@@ -194,220 +289,122 @@ export function AdminDashboard() {
           ))}
         </div>
 
-        {/* Dashboard Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        {/* Tabs */}
+        <Tabs defaultValue="ngos" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="ngos">NGO Approvals</TabsTrigger>
             <TabsTrigger value="stories">Story Approvals</TabsTrigger>
             <TabsTrigger value="audit">Audit Logs</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Platform KPIs */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Platform KPIs</CardTitle>
-                  <CardDescription>
-                    Key performance indicators
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>Total Platform Revenue</span>
-                        <span>${stats.totalRaised.toLocaleString()}</span>
-                      </div>
-                      <Progress value={85} className="h-2" />
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>Donation Success Rate</span>
-                        <span>92%</span>
-                      </div>
-                      <Progress value={92} className="h-2" />
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>NGO Verification Rate</span>
-                        <span>78%</span>
-                      </div>
-                      <Progress value={78} className="h-2" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Recent Activity */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                  <CardDescription>
-                    Latest platform activities
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {auditLogs.slice(0, 5).map((log) => (
-                      <div key={log.id} className="flex items-center space-x-3">
-                        <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900">
-                          <Calendar className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{log.action}</p>
-                          <p className="text-xs text-gray-500">
-                            {log.users?.name} • {new Date(log.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <Badge variant={log.status === 'success' ? 'default' : 'secondary'}>
-                          {log.status}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="ngos" className="space-y-6">
+          {/* NGO Approvals */}
+          <TabsContent value="ngos">
             <Card>
               <CardHeader>
-                <CardTitle>Pending NGO Approvals</CardTitle>
-                <CardDescription>
-                  Review and approve new NGO registrations
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {pendingNGOs.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>NGO Name</TableHead>
-                        <TableHead>Registration No</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Registered</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pendingNGOs.map((ngo) => (
-                        <TableRow key={ngo.id}>
-                          <TableCell className="font-medium">{ngo.name}</TableCell>
-                          <TableCell>{ngo.reg_no}</TableCell>
-                          <TableCell>{ngo.category}</TableCell>
-                          <TableCell>{ngo.contact_email}</TableCell>
-                          <TableCell>
-                            {new Date(ngo.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleVerifyNGO(ngo.id)}
-                              >
-                                Approve
-                              </Button>
-                              <Button size="sm" variant="outline">
-                                Review
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <p className="text-center text-gray-500 py-8">
-                    No pending NGO approvals
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="stories" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Story Approvals</CardTitle>
-                <CardDescription>
-                  Review and approve success stories
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {pendingStories.length > 0 ? (
-                  <div className="space-y-4">
-                    {pendingStories.map((story) => (
-                      <div key={story.id} className="p-4 border rounded-lg">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="font-medium">{story.title}</h3>
-                            <p className="text-sm text-gray-500">
-                              {story.ngos?.name} • {new Date(story.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handleApproveStory(story.id)}
-                            >
-                              Approve
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              Reject
-                            </Button>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600 line-clamp-3">
-                          {story.story_text}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center text-gray-500 py-8">
-                    No pending story approvals
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="audit" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Audit Logs</CardTitle>
-                <CardDescription>
-                  Complete audit trail of platform activities
-                </CardDescription>
+                <CardTitle>Pending NGOs</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>User</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingNGOs.map((ngo) => (
+                      <TableRow key={ngo.id}>
+                        <TableCell>{ngo.name}</TableCell>
+                        <TableCell>{ngo.category}</TableCell>
+                        <TableCell>{ngo.email}</TableCell>
+                        <TableCell>
+                          {new Date(ngo.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            onClick={() => handleVerifyNGO(ngo.id)}
+                          >
+                            Verify
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Story Approvals */}
+          <TabsContent value="stories">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pending Stories</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>NGO</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingStories.map((story) => (
+                      <TableRow key={story.id}>
+                        <TableCell>{story.title}</TableCell>
+                        <TableCell>{story.ngo_id?.name}</TableCell>
+                        <TableCell>
+                          {new Date(story.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            onClick={() => handleApproveStory(story.id)}
+                          >
+                            Approve
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Audit Logs */}
+          <TabsContent value="audit">
+            <Card>
+              <CardHeader>
+                <CardTitle>Audit Logs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
                       <TableHead>Action</TableHead>
                       <TableHead>Entity</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>Created</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {auditLogs.map((log) => (
                       <TableRow key={log.id}>
-                        <TableCell>
-                          {new Date(log.created_at).toLocaleDateString()}
-                        </TableCell>
+                        <TableCell>{log.action}</TableCell>
+                        <TableCell>{log.entity}</TableCell>
+                        <TableCell>{log.status}</TableCell>
                         <TableCell>{log.users?.name}</TableCell>
-                        <TableCell className="capitalize">{log.action.replace('_', ' ')}</TableCell>
-                        <TableCell className="capitalize">{log.entity}</TableCell>
                         <TableCell>
-                          <Badge variant={log.status === 'success' ? 'default' : 'secondary'}>
-                            {log.status}
-                          </Badge>
+                          {new Date(log.created_at).toLocaleString()}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -419,5 +416,5 @@ export function AdminDashboard() {
         </Tabs>
       </motion.div>
     </div>
-  )
+  );
 }

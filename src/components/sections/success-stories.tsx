@@ -22,7 +22,7 @@ interface NGO {
   id: string;
   name: string;
   slug?: string;
-  logo?: string;
+  image?: string;
   email: string;
   role: string;
   created_at: string;
@@ -51,8 +51,8 @@ export function SuccessStories() {
           .select("*, ngo_id(*)")
           .order("created_at", { ascending: false });
 
-        if (error) throw error;
         console.log("Fetched success stories:", data);
+        if (error) throw error;
         setStories(data || []);
       } catch (error) {
         console.error("Error fetching success stories:", error);
@@ -190,7 +190,7 @@ export function SuccessStories() {
                           <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
                             <img
                               src={
-                                stories[currentIndex].ngo_id.logo ||
+                                stories[currentIndex].ngo_id?.image ||
                                 "/placeholder.png"
                               }
                               alt={stories[currentIndex].ngo_id.name}

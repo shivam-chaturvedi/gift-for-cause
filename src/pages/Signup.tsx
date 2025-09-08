@@ -188,7 +188,9 @@ const Signup = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">
+                  Name <span className="text-red-600">*</span>
+                </Label>
                 <Input
                   id="name"
                   type="text"
@@ -200,7 +202,9 @@ const Signup = () => {
               </div>
 
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">
+                  Email <span className="text-red-600">*</span>
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -212,7 +216,9 @@ const Signup = () => {
               </div>
 
               <div>
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">
+                  Password <span className="text-red-600">*</span>
+                </Label>
                 <Input
                   id="password"
                   type="password"
@@ -226,8 +232,11 @@ const Signup = () => {
               {formData.role === "ngo" && (
                 <>
                   <div>
-                    <Label htmlFor="description">Short Description</Label>
+                    <Label htmlFor="description">
+                      Short Description <span className="text-red-600">*</span>
+                    </Label>
                     <Input
+                      required
                       id="description"
                       type="text"
                       placeholder="Brief description of NGO"
@@ -251,8 +260,11 @@ const Signup = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="location">Location</Label>
+                    <Label htmlFor="location">
+                      Location <span className="text-red-600">*</span>
+                    </Label>
                     <Input
+                      required
                       id="location"
                       type="text"
                       placeholder="City, State, Country"
@@ -273,8 +285,11 @@ const Signup = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="established_year">Established Year</Label>
+                    <Label htmlFor="established_year">
+                      Established Year <span className="text-red-600">*</span>
+                    </Label>
                     <Input
+                      required
                       id="established_year"
                       type="number"
                       placeholder="e.g., 2005"
@@ -296,7 +311,9 @@ const Signup = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="image">NGO Logo / Image</Label>
+                    <Label htmlFor="image">
+                      NGO Logo / Image <span className="text-red-600">*</span>
+                    </Label>
                     <ImageUploader
                       initialImage={formData.image}
                       onUploadComplete={(url) => {

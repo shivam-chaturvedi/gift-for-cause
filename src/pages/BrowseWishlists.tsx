@@ -31,7 +31,6 @@ interface Wishlist {
 const BrowseWishlists = () => {
   const [wishlists, setWishlists] = useState<Wishlist[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOccasion, setSelectedOccasion] = useState("all");
   const [sortBy, setSortBy] = useState("relevance");
   const [loading, setLoading] = useState(true);
 
@@ -42,13 +41,17 @@ const BrowseWishlists = () => {
       const { data, error } = await supabase
         .from("wishlists")
         .select(
-          "id, title, description, ngo_name, location, target_amount, raised_amount, image, urgent"
+          "id, title, description, ngo_name, location, target_amount, raised_amount, image, urgent, ngo_id(verified)"
         );
 
       if (error) {
         console.error("Error fetching wishlists:", error);
       } else {
-        setWishlists(data || []);
+        setWishlists(
+          data?.filter(
+            (wishlist) => wishlist?.ngo_id?.verified
+          ) as Wishlist[]
+        );
       }
       setLoading(false);
     };

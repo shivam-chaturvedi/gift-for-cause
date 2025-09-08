@@ -27,14 +27,16 @@ export function FeaturedWishlistsSection() {
     async function fetchWishlists() {
       const { data, error } = await supabase
         .from("wishlists")
-        .select("*")
+        .select(`*,ngo_id(verified)`)
         .order("created_at", { ascending: false })
         .limit(10);
 
       if (error) {
         console.error("Error fetching wishlists:", error.message);
       } else if (data) {
-        setWishlists(data as Wishlist[]);
+        setWishlists(
+          data?.filter((wishlist) => wishlist?.ngo_id.verified) as Wishlist[]
+        );
       }
       setLoading(false);
     }

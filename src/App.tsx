@@ -24,6 +24,7 @@ import Signup from "./pages/Signup";
 import Donate from "./pages/Donate";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./components/ui/reset-password-form";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,8 @@ const App = () => (
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/donate/:id?" element={<Donate />} />
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/forgot-password" element={<ResetPassword />} />
+
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
