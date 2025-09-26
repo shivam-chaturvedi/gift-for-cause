@@ -2,15 +2,63 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Heart, Gift, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
-
-const stats = [
-  { value: 10000, label: "Lives Impacted", icon: Heart, suffix: "+" },
-  { value: 500, label: "Gifts Delivered", icon: Gift, suffix: "+" },
-  { value: 150, label: "NGO Partners", icon: Users, suffix: "+" },
-];
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export function HeroSection() {
   const navigate = useNavigate();
+  const [livesImpacted, setLivesImpacted] = useState(0); // Number of lives impacted
+  const [giftsDelivered, setGiftsDelivered] = useState(0); // Number of gifts delivered
+  const [ngoPartners, setNgoPartners] = useState(0); // Number of NGO partners
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      // 1. Count of NGOs
+      const { count: ngoCount, error: ngoError } = await supabase
+        .from("ngo")
+        .select("*", { count: "exact", head: true });
+
+      if (ngoError) console.error("NGO fetch error:", ngoError);
+      else setNgoPartners(ngoCount || 0);
+
+      // 2. Lives impacted → sum of donation amounts
+      const { data: donationSum, error: donationError } = await supabase
+        .from("donations")
+        .select("amount");
+
+      if (donationError) {
+        console.error("Donations fetch error:", donationError);
+      } else {
+        const total = donationSum.reduce(
+          (acc, d) => acc + Number(d.amount || 0),
+          0
+        );
+        setLivesImpacted(total);
+      }
+
+      // 3. Gifts delivered → number of successful donations
+      const { count: deliveredCount, error: giftError } = await supabase
+        .from("donations")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "completed");
+
+      if (giftError) console.error("Gifts fetch error:", giftError);
+      else setGiftsDelivered(deliveredCount || 0);
+    };
+
+    fetchStats();
+  }, []);
+
+  const stats = [
+    { value: livesImpacted, label: "Lives Impacted", icon: Heart, suffix: "+" },
+    {
+      value: giftsDelivered,
+      label: "Gifts Delivered",
+      icon: Gift,
+      suffix: "+",
+    },
+    { value: ngoPartners, label: "NGO Partners", icon: Users, suffix: "+" },
+  ];
 
   const handleStartGiving = () => {
     navigate("/browse", { replace: true });

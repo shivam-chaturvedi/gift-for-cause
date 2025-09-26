@@ -25,7 +25,7 @@ export interface PaymentResult {
 
 // Stripe Payment
 export const stripePayment = {
-  createPaymentIntent: async (amount: number, currency: string = 'usd'): Promise<PaymentIntent> => {
+  createPaymentIntent: async (amount: number, currency: string = 'inr'): Promise<PaymentIntent> => {
     try {
       const response = await fetch('/api/payments/stripe/create-intent', {
         method: 'POST',
@@ -85,7 +85,7 @@ export const stripePayment = {
 
 // PayPal Payment
 export const paypalPayment = {
-  createOrder: async (amount: number, currency: string = 'USD'): Promise<PaymentIntent> => {
+  createOrder: async (amount: number, currency: string = 'INR'): Promise<PaymentIntent> => {
     try {
       const response = await fetch('/api/payments/paypal/create-order', {
         method: 'POST',
@@ -248,7 +248,7 @@ export class PaymentService {
   static async createPaymentIntent(
     amount: number,
     gateway: 'stripe' | 'paypal' | 'razorpay',
-    currency: string = 'USD'
+    currency: string = 'INR'
   ): Promise<PaymentIntent> {
     try {
       switch (gateway) {
@@ -275,13 +275,13 @@ export class PaymentService {
       case 'stripe':
         return {
           publishableKey: STRIPE_PUBLISHABLE_KEY,
-          currency: 'USD'
+          currency: 'INR'
         }
       
       case 'paypal':
         return {
           clientId: PAYPAL_CLIENT_ID,
-          currency: 'USD'
+          currency: 'INR'
         }
       
       case 'razorpay':
@@ -326,7 +326,7 @@ export const mockPayment = {
     return {
       id: `mock_${gateway}_intent_${Date.now()}`,
       amount,
-      currency: gateway === 'razorpay' ? 'INR' : 'USD',
+      currency: 'INR',
       status: 'requires_payment_method',
       client_secret: `mock_secret_${Date.now()}`
     }

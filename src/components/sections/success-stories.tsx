@@ -53,7 +53,11 @@ export function SuccessStories() {
 
         console.log("Fetched success stories:", data);
         if (error) throw error;
-        setStories(data || []);
+        setStories(
+          data.filter((s) => {
+            return s.approved && s?.ngo_id?.verified;
+          }) || []
+        );
       } catch (error) {
         console.error("Error fetching success stories:", error);
       } finally {
@@ -265,7 +269,7 @@ export function SuccessStories() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -303,11 +307,11 @@ export function SuccessStories() {
               </div>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              $500K+
+              ₹500K+
             </h3>
             <p className="text-gray-600 dark:text-gray-400">Total Donations</p>
           </div>
-        </motion.div>
+        </motion.div> */}
       </div>
     </section>
   );

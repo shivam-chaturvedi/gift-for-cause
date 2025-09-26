@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/components/ui/use-toast";
 import { Heart, Loader2, Building, Users } from "lucide-react";
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import ImageUploader from "@/components/ui/image-uploader";
 import { supabase } from "@/lib/supabase";
+import FileDragDropUploader from "@/components/ui/ngo-doc-uploader";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -34,17 +36,23 @@ const Signup = () => {
     established_year: "",
     website: "",
     image: "",
+    document_url: "",
+    // Tax certificates
+    has_tax_certificates: false,
+    // Consent
+    consent: false,
   });
 
   const { signup, user, isLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (user) navigate("/"); // redirect if already logged in
   }, [user, navigate]);
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -56,6 +64,18 @@ const Signup = () => {
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.consent) {
+      toast({
+        title: "Consent Required",
+        description: "Please accept the terms and conditions to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
     try {
       if (formData.role !== "ngo") {
         // Normal user signup
@@ -79,6 +99,21 @@ const Signup = () => {
         const userId = authData.user?.id;
         if (!userId) throw new Error("User ID not returned from auth signup");
 
+        // Insert into users table first
+        const { error: userError } = await supabase
+          .from("users")
+          .insert([
+            {
+              id: userId,
+              name: formData.name,
+              email: formData.email,
+              role: formData.role,
+            },
+          ]);
+
+        if (userError) throw userError;
+
+        // Then insert into ngo table
         const { data: ngoData, error: ngoError } = await supabase
           .from("ngo")
           .insert([
@@ -94,6 +129,8 @@ const Signup = () => {
               established_year: formData.established_year,
               website: formData.website,
               image: formData.image,
+              document_url: formData.document_url,
+              has_tax_certificates: formData.has_tax_certificates,
             },
           ]);
 
@@ -111,6 +148,8 @@ const Signup = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -146,11 +185,13 @@ const Signup = () => {
               <motion.button
                 type="button"
                 onClick={() => handleRoleChange("donor")}
+                disabled={isSubmitting || isLoading}
                 className={cn(
                   "flex-1 p-4 rounded-xl border-2 text-left transition-all duration-200",
                   formData.role === "donor"
                     ? "border-primary bg-primary/5 shadow-md"
-                    : "border-border hover:border-primary/50 bg-card"
+                    : "border-border hover:border-primary/50 bg-card",
+                  (isSubmitting || isLoading) && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <div className="flex items-center space-x-3">
@@ -167,11 +208,13 @@ const Signup = () => {
               <motion.button
                 type="button"
                 onClick={() => handleRoleChange("ngo")}
+                disabled={isSubmitting || isLoading}
                 className={cn(
                   "flex-1 p-4 rounded-xl border-2 text-left transition-all duration-200",
                   formData.role === "ngo"
                     ? "border-primary bg-primary/5 shadow-md"
-                    : "border-border hover:border-primary/50 bg-card"
+                    : "border-border hover:border-primary/50 bg-card",
+                  (isSubmitting || isLoading) && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <div className="flex items-center space-x-3">
@@ -197,6 +240,7 @@ const Signup = () => {
                   placeholder="Enter your name"
                   value={formData.name}
                   onChange={(e) => handleChange("name", e.target.value)}
+                  disabled={isSubmitting || isLoading}
                   required
                 />
               </div>
@@ -211,6 +255,7 @@ const Signup = () => {
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={(e) => handleChange("email", e.target.value)}
+                  disabled={isSubmitting || isLoading}
                   required
                 />
               </div>
@@ -225,6 +270,7 @@ const Signup = () => {
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={(e) => handleChange("password", e.target.value)}
+                  disabled={isSubmitting || isLoading}
                   required
                 />
               </div>
@@ -311,6 +357,33 @@ const Signup = () => {
                     />
                   </div>
                   <div>
+                    <Label htmlFor="document_url">
+                      NGO Documents (PDF / Image){" "}
+                      <span className="text-red-600">*</span>
+                    </Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Please upload certified documents as per your country’s
+                      legal requirements (e.g., Registration Certificate, FCRA,
+                      PAN, or equivalent).
+                    </p>
+                    <FileDragDropUploader
+                      bucket="ngo_documents"
+                      onUploadComplete={(url) => {
+                        handleChange("document_url", url);
+                        toast({
+                          title: "Document uploaded",
+                          description:
+                            "Your NGO document has been uploaded successfully.",
+                        });
+                      }}
+                    />
+                    {formData.document_url && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✅ Document uploaded successfully
+                      </p>
+                    )}
+                  </div>
+                  <div>
                     <Label htmlFor="image">
                       NGO Logo / Image <span className="text-red-600">*</span>
                     </Label>
@@ -328,15 +401,95 @@ const Signup = () => {
                 </>
               )}
 
+              {/* Tax Certificates Section - For NGOs Only */}
+              {formData.role === "ngo" && (
+                <div className="space-y-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-foreground">
+                      Tax Exemption Certificates (Optional)
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      If you have 80G (India) or 12A certificates, please indicate below. This helps donors understand tax benefits.
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="has_tax_certificates"
+                      checked={formData.has_tax_certificates}
+                      onCheckedChange={(checked) => 
+                        handleChange("has_tax_certificates", checked === true)
+                      }
+                      className="mt-1"
+                    />
+                    <Label 
+                      htmlFor="has_tax_certificates" 
+                      className="text-xs leading-relaxed cursor-pointer"
+                    >
+                      I have 80G/12A tax exemption certificates (or equivalent in my country)
+                    </Label>
+                  </div>
+                </div>
+              )}
+
+              {/* Consent Section - For All Users */}
+              <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border/50">
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Data Protection & Privacy Consent
+                  </h4>
+                  <div className="text-xs text-muted-foreground space-y-2">
+                    <p>
+                      <strong>Data Collection:</strong> We collect your personal information including name, email, contact details{formData.role === "ngo" ? ", and organization information" : ""} to provide our services and facilitate donations.
+                    </p>
+                    <p>
+                      <strong>Purpose:</strong> Your data is used to create and manage your account, process donations{formData.role === "ngo" ? ", send important updates about your campaigns" : ""}, and comply with legal requirements.
+                    </p>
+                    <p>
+                      <strong>Data Sharing:</strong> We may share your information with payment processors, verification services, and legal authorities as required by law. We do not sell your personal data to third parties.
+                    </p>
+                    <p>
+                      <strong>Your Rights:</strong> You have the right to access, update, or delete your personal information. You can withdraw consent at any time by contacting us.
+                    </p>
+                    <p>
+                      <strong>Data Security:</strong> We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.
+                    </p>
+                    <p>
+                      <strong>Retention:</strong> We retain your personal information only as long as necessary to fulfill the purposes outlined in this consent or as required by law.
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      This consent is required under GDPR (EU), DPDPA (India), and other applicable data protection laws.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="consent"
+                    checked={formData.consent}
+                    onCheckedChange={(checked) => 
+                      handleChange("consent", checked === true)
+                    }
+                    className="mt-1"
+                  />
+                  <Label 
+                    htmlFor="consent" 
+                    className="text-xs leading-relaxed cursor-pointer"
+                  >
+                    <span className="text-red-600">*</span> I have read and understood the data protection and privacy policy above. I consent to the collection, processing, and use of my personal information as described for the purposes of using this platform and its services.
+                  </Label>
+                </div>
+              </div>
+
               <Button
                 variant="hero"
                 className="w-full mt-2"
-                disabled={isLoading}
+                disabled={isSubmitting || isLoading}
               >
-                {isLoading ? (
+                {isSubmitting || isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing Up...
+                    {formData.role === "ngo" ? "Creating NGO Account..." : "Signing Up..."}
                   </>
                 ) : (
                   "Sign Up"

@@ -37,14 +37,14 @@ const paymentMethods: PaymentMethod[] = [
     name: 'Credit/Debit Card',
     description: 'Secure payment via Stripe',
     icon: '💳',
-    currency: 'USD'
+    currency: 'INR'
   },
   {
     id: 'paypal',
     name: 'PayPal',
     description: 'Pay with your PayPal account',
     icon: '🔵',
-    currency: 'USD'
+    currency: 'INR'
   },
   {
     id: 'razorpay',

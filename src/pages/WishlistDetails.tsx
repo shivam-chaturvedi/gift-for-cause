@@ -256,7 +256,7 @@ const WishlistDetails = () => {
                       ₹{wishlist.raisedAmount.toLocaleString()} raised
                     </span>
                     <span className="font-medium text-foreground">
-                      ₹{remaining.toLocaleString()} needed
+                      ₹{Math.max(remaining, 0).toLocaleString()} needed
                     </span>
                   </div>
                   <div className="w-full bg-muted rounded-full h-3 overflow-hidden">

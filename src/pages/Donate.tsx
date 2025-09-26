@@ -18,6 +18,8 @@ import { AuthGuard } from "@/components/auth-guard";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
+import ManualDonationForm from "@/components/ui/donation.form";
+import { sendDonationConfirmationEmail, sendNGODonationNotificationEmail } from "@/lib/mailer";
 
 type DonationStep = "confirmation" | "details" | "payment" | "success";
 
@@ -30,15 +32,20 @@ interface WishlistItem {
 }
 
 interface WishlistData {
+  ngo_id: string;
   id: string;
   title: string;
   description: string;
   ngo_name: string;
+  ngo_email?: string;
   image: string;
   urgent: boolean;
   target_amount: number;
   raised_amount: number;
   wishlist_items: WishlistItem[];
+  ngos: {
+    contact_email: string;
+  };
 }
 
 const Donate = () => {
@@ -59,6 +66,7 @@ const Donate = () => {
   const [loading, setLoading] = useState(true);
 
   const [donor, setDonor] = useState<any>(null);
+  const [manualDonation, setManualDonation] = useState(false);
 
   const fetchDonor = async (email: string) => {
     const { data, error } = await supabase
@@ -100,6 +108,7 @@ const Donate = () => {
         .select("*, wishlist_items(*)")
         .eq("id", id)
         .single();
+      console.log(data);
 
       if (error) {
         toast({
@@ -177,84 +186,106 @@ const Donate = () => {
     (sum, item) => sum + item.qty * item.price,
     0
   );
+
   const handlePayment = async () => {
     if (totalAmount <= 0) {
       toast({ title: "No items selected", variant: "destructive" });
       return;
     }
 
-    try {
-      // Create order + donation record
-      const { data, error } = await supabase.functions.invoke("create-order", {
-        body: {
-          amount: totalAmount,
-          user: { id: donor.id, name: donor.name, email: donor.email },
-          wishlist_id: id,
-        },
-        headers:{
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        }
-      });
-      console.log("Order creation response:", data, error);
+    toast({ title: "Donation completed successfully!" });
 
-      if (error || !data?.order) {
+    // Insert donation record
+    const { data: donation, error } = await supabase
+      .from("donations")
+      .insert([
+        {
+          user_id: donor?.id || null,
+          wishlist_id: wishlist?.id || null,
+          amount: totalAmount,
+          status: "completed", // default status
+          name: donationData.donorName,
+          email: donationData.donorEmail,
+          // razorpay fields can remain null
+          razorpay_order_id: null,
+          razorpay_payment_id: null,
+          razorpay_signature: null,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating donation:", error);
+      toast({
+        title: "Error recording donation",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Update wishlist raised amount
+    await supabase
+      .from("wishlists")
+      .update({
+        raised_amount: wishlist!.raised_amount + totalAmount,
+      })
+      .eq("id", wishlist!.id);
+
+    // Send emails after successful donation
+    try {
+      // Send confirmation email to donor
+      const donorEmailResult = await sendDonationConfirmationEmail(
+        donationData.donorEmail,
+        donationData.donorName,
+        totalAmount,
+        wishlist?.title || "Unknown Wishlist",
+        wishlist?.ngo_name || "Unknown NGO"
+      );
+
+      if (donorEmailResult.success) {
+        console.log("Donation confirmation email sent to donor");
         toast({
-          title: "Order creation failed",
-          description: error?.message || "Could not create Razorpay order",
+          title: "Email Sent",
+          description: "A confirmation email has been sent to your email address.",
+        });
+      } else {
+        console.warn("Failed to send donor confirmation email:", donorEmailResult.error);
+        toast({
+          title: "Email Failed",
+          description: "Donation completed but confirmation email could not be sent. Please check your email manually.",
           variant: "destructive",
         });
-        return;
       }
 
-      const options = {
-        key: "rzp_test_VVaxe8RQLNF0DS",
-        amount: data.order.amount,
-        currency: data.order.currency,
-        name: "Gift For Cause",
-        description: "Support NGO's",
-        order_id: data.order.id,
-        handler: async (response: any) => {
-          // Verify payment and update donation
-          
-          const { error: verifyError } = await supabase.functions.invoke(
-            "verify-payment",
-            {
-              body: {
-                razorpay_order_id: data.order.id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              },
-            }
-          );
+      // Send notification email to NGO
+      if (wishlist?.ngos?.contact_email) {
+        const ngoEmailResult = await sendNGODonationNotificationEmail(
+          wishlist.ngos.contact_email,
+          wishlist.ngo_name || "Unknown NGO",
+          donationData.donorName,
+          totalAmount,
+          wishlist.title || "Unknown Wishlist"
+        );
 
-          if (verifyError) {
-            toast({
-              title: "Verification failed",
-              description: verifyError.message,
-              variant: "destructive",
-            });
-            return;
-          }
-
-          toast({ title: "Donation completed successfully!" });
-        },
-        prefill: {
-          name: donor.name,
-          email: donor.email,
-          contact: "9999999999",
-        },
-        theme: { color: "#6366f1" },
-      };
-
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
-    } catch (err: any) {
+        if (ngoEmailResult.success) {
+          console.log("NGO notification email sent successfully");
+        } else {
+          console.warn("Failed to send NGO notification email:", ngoEmailResult.error);
+        }
+      }
+    } catch (emailError) {
+      console.error("Error sending emails:", emailError);
       toast({
-        title: "Payment failed",
-        description: err.message,
+        title: "Email Service Unavailable",
+        description: "Donation completed successfully, but email notifications could not be sent.",
         variant: "destructive",
       });
     }
+
+    // Move to success step
+    handleNextStep();
   };
 
   const renderStepContent = () => {
@@ -328,8 +359,8 @@ const Donate = () => {
               })}
             </div>
 
-            <div className="flex justify-between">
-              <Button variant="outline" asChild>
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
+              <Button variant="outline" asChild className="w-full sm:w-auto">
                 <Link to="/browse">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Browse
@@ -339,6 +370,7 @@ const Donate = () => {
                 variant="hero"
                 onClick={handleNextStep}
                 disabled={donationData.items.length === 0}
+                className="w-full sm:w-auto"
               >
                 Continue to Details
               </Button>
@@ -410,8 +442,8 @@ const Donate = () => {
               </div>
             </div>
 
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={handlePrevStep}>
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
+              <Button variant="outline" onClick={handlePrevStep} className="w-full sm:w-auto">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
@@ -423,6 +455,7 @@ const Donate = () => {
                   !donationData.donorEmail ||
                   donationData.items.length === 0
                 }
+                className="w-full sm:w-auto"
               >
                 Continue to Payment
               </Button>
@@ -439,13 +472,14 @@ const Donate = () => {
           >
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-bold text-foreground">
-                Secure Payment
+                Complete Your Donation
               </h2>
               <p className="text-muted-foreground">
-                Complete your donation securely
+                You can pay via the bank details or QR code below
               </p>
             </div>
 
+            {/* Payment summary */}
             <Card className="border border-border/50">
               <CardHeader>
                 <div className="flex items-center space-x-2">
@@ -475,17 +509,33 @@ const Donate = () => {
                   <span>Total</span>
                   <span className="text-primary">₹{totalAmount}</span>
                 </div>
+
+                <ManualDonationForm
+                  ngoName={wishlist.ngo_name}
+                  ngoId={wishlist?.ngo_id}
+                  userId={donor?.id}
+                  donorName={donor.name}
+                  donorEmail={donor.email}
+                  totalAmount={totalAmount}
+                />
               </CardContent>
             </Card>
 
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={handlePrevStep}>
+            {/* Navigation buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
+              <Button variant="outline" onClick={handlePrevStep} className="w-full sm:w-auto">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <Button variant="hero" onClick={handlePayment}>
+              <Button
+                variant="hero"
+                onClick={() => {
+                  handlePayment();
+                }}
+                className="w-full sm:w-auto"
+              >
                 <Shield className="w-4 h-4 mr-2" />
-                Complete Donation
+                Confirm Donation
               </Button>
             </div>
           </motion.div>

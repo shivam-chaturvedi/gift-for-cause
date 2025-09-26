@@ -256,7 +256,7 @@ export function DonorDashboard() {
                     <div>
                       <div className="flex justify-between text-sm mb-2">
                         <span>Total Impact</span>
-                        <span>${totalAmount.toLocaleString()}</span>
+                        <span>₹{totalAmount.toLocaleString()}</span>
                       </div>
                       <Progress value={75} className="h-2" />
                     </div>
@@ -301,7 +301,7 @@ export function DonorDashboard() {
                       <TableHead>Wishlist Title</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Gateway</TableHead>
+                      <TableHead>Payment Method</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -326,7 +326,7 @@ export function DonorDashboard() {
                             {donation.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="capitalize">Razorpay</TableCell>
+                        <TableCell className="capitalize">Payment Gateway</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Insert into `users` table (only include fields present in table)
     const { error: profileError } = await supabase
       .from("users")
-      .insert([{ id: data.user?.id, name, email, role: "donor" }]);
+      .insert([{ id: data.user?.id, name, email, role }]);
     if (profileError) throw profileError;
 
     setUser(data.user);

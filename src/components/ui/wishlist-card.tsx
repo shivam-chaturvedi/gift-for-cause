@@ -1,8 +1,20 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Heart, MapPin, Users } from "lucide-react";
+import { Heart, MapPin, Users, Trash2, Package, ChevronDown, ChevronUp, Edit } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface WishlistCardProps {
   id: string;
@@ -14,6 +26,18 @@ interface WishlistCardProps {
   raised_amount: number;
   image: string;
   urgent?: boolean;
+  showDeleteButton?: boolean;
+  onDelete?: (wishlistId: string) => void;
+  isNGODashboard?: boolean;
+  wishlist_items?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    qty: number;
+    funded_qty: number;
+  }>;
+  onManageItems?: (wishlistId: string) => void;
+  onEdit?: (wishlistId: string) => void;
 }
 
 export function WishlistCard({
@@ -26,11 +50,17 @@ export function WishlistCard({
   raised_amount,
   image,
   urgent = false,
+  showDeleteButton = false,
+  onDelete,
+  isNGODashboard = false,
+  wishlist_items = [],
+  onManageItems,
+  onEdit,
 }: WishlistCardProps) {
+  const [showItems, setShowItems] = useState(false);
   const progress =
-  target_amount > 0 ? (raised_amount / target_amount) * 100 : 0;
+    target_amount > 0 ? (raised_amount / target_amount) * 100 : 0;
   const remaining = target_amount - raised_amount;
- 
 
   return (
     <motion.div
@@ -38,20 +68,56 @@ export function WishlistCard({
       transition={{ duration: 0.3 }}
       className="group relative bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-strong border border-border/50"
     >
-      {urgent && (
-        <motion.div
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="absolute top-4 right-4 z-10"
-        >
-          <Badge
-            variant="destructive"
-            className="bg-destructive text-destructive-foreground"
+      {/* Top Right Badges */}
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        {urgent && (
+          <motion.div
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
           >
-            Urgent
-          </Badge>
-        </motion.div>
-      )}
+            <Badge
+              variant="destructive"
+              className="bg-destructive text-destructive-foreground"
+            >
+              Urgent
+            </Badge>
+          </motion.div>
+        )}
+
+        {/* Delete Button */}
+        {showDeleteButton && onDelete && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.2 }}
+                className="p-2 rounded-full bg-destructive/80 backdrop-blur-sm hover:bg-destructive transition-colors"
+              >
+            
+                <Trash2 className="w-4 h-4 text-destructive-foreground" />
+              </motion.button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Wishlist</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{title}"? This action cannot be undone.
+                  All associated donations and data will be permanently removed.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDelete(id)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete Wishlist
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </div>
 
       {/* Image */}
       <div className="relative h-48 overflow-hidden">
@@ -103,7 +169,8 @@ export function WishlistCard({
               ₹{raised_amount?.toLocaleString()} raised
             </span>
             <span className="font-medium text-foreground">
-              ₹{(target_amount-raised_amount).toLocaleString()} needed
+              ₹{Math.max(target_amount - raised_amount, 0).toLocaleString()}{" "}
+              needed
             </span>
           </div>
           <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
@@ -121,13 +188,75 @@ export function WishlistCard({
 
         {/* Actions */}
         <div className="flex space-x-2 pt-2">
-          <Button variant="hero" className="flex-1" asChild>
-            <Link to={`/donate/${id}`}>Donate Now</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link to={`/wishlist/${id}`}>View Details</Link>
-          </Button>
+          {isNGODashboard ? (
+            <>
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  if (onManageItems) {
+                    onManageItems(id);
+                  } else {
+                    setShowItems(!showItems);
+                  }
+                }}
+              >
+                <Package className="w-4 h-4 mr-2" />
+                Manage Items
+                {!onManageItems && (showItems ? <ChevronUp className="w-4 h-4 ml-2" /> : <ChevronDown className="w-4 h-4 ml-2" />)}
+              </Button>
+              {onEdit && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => onEdit(id)}
+                  className="px-3"
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
+              )}
+            </>
+          ) : (
+            <>
+              <Button variant="hero" className="flex-1" asChild>
+                <Link to={`/donate/${id}`}>Donate Now</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to={`/wishlist/${id}`}>View Details</Link>
+              </Button>
+            </>
+          )}
         </div>
+
+        {/* Items List - Only show in NGO dashboard when expanded */}
+        {isNGODashboard && showItems && wishlist_items.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-4 space-y-2 border-t pt-4"
+          >
+            <h4 className="text-sm font-semibold text-foreground mb-2">Wishlist Items</h4>
+            {wishlist_items.map((item) => (
+              <div
+                key={item.id}
+                className="flex justify-between items-center text-sm bg-muted/50 rounded-lg p-3"
+              >
+                <div className="flex-1">
+                  <span className="font-medium">{item.name}</span>
+                  <p className="text-xs text-muted-foreground">₹{item.price}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs text-muted-foreground">
+                    {item.funded_qty}/{item.qty}
+                  </span>
+                  <p className="text-xs text-muted-foreground">
+                    {item.funded_qty >= item.qty ? "Complete" : "Pending"}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
       </div>
     </motion.div>
   );

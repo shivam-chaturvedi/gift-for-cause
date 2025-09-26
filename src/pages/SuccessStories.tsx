@@ -30,14 +30,18 @@ const SuccessStories = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("success_stories")
-        .select("*")
+        .select("*,ngo_id(verified)")
         .order("created_at", { ascending: false });
 
       console.log("Fetched success stories:", data);
       if (error) {
         console.error("Error fetching stories:", error);
       } else {
-        setStories(data || []);
+        setStories(
+          data.filter((s) => {
+            return s.approved && s?.ngo_id?.verified;
+          }) || []
+        );
       }
       setLoading(false);
     };

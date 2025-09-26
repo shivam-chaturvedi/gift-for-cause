@@ -1,36 +1,53 @@
-import { motion } from "framer-motion"
-import { ArrowRight, Gift, Search, Heart, Share, Play, CheckCircle } from "lucide-react"
-import { Link } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { motion } from "framer-motion";
+import {
+  ArrowRight,
+  Gift,
+  Search,
+  Heart,
+  Share,
+  Play,
+  CheckCircle,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const steps = [
   {
     icon: Gift,
     title: "Choose an Occasion",
-    description: "Celebrate birthdays, anniversaries, holidays, or any special moment by choosing to give meaningfully.",
+    description:
+      "Celebrate birthdays, anniversaries, holidays, or any special moment by choosing to give meaningfully.",
     color: "from-accent to-primary",
   },
   {
     icon: Search,
     title: "Browse Wishlists",
-    description: "Explore verified NGO wishlists filled with items that make real differences in communities.",
+    description:
+      "Explore verified NGO wishlists filled with items that make real differences in communities.",
     color: "from-primary to-secondary",
   },
   {
     icon: Heart,
     title: "Select & Donate",
-    description: "Pick items that resonate with you and make secure donations that go directly to verified NGOs.",
+    description:
+      "Pick items that resonate with you and make secure donations that go directly to verified NGOs.",
     color: "from-secondary to-accent",
   },
   {
     icon: Share,
     title: "Track Impact",
-    description: "Receive updates on how your gift created change and share your impact story with loved ones.",
+    description:
+      "Receive updates on how your gift created change and share your impact story with loved ones.",
     color: "from-accent to-primary",
   },
-]
+];
 
 const HowItWorks = () => {
   return (
@@ -50,8 +67,9 @@ const HowItWorks = () => {
               </span>
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Transform any celebration into an opportunity to create lasting impact. 
-              Our platform makes charitable giving personal, transparent, and joyful.
+              Transform any celebration into an opportunity to create lasting
+              impact. Our platform makes charitable giving personal,
+              transparent, and joyful.
             </p>
           </motion.div>
         </div>
@@ -119,7 +137,8 @@ const HowItWorks = () => {
               See It In Action
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Watch how Sarah transformed her birthday celebration into meaningful impact
+              Watch how Sarah transformed her birthday celebration into
+              meaningful impact
             </p>
           </motion.div>
 
@@ -139,36 +158,47 @@ const HowItWorks = () => {
                         <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-bold">
                           1
                         </div>
-                        <p className="text-muted-foreground">Sarah's 25th Birthday</p>
+                        <p className="text-muted-foreground">
+                          Sarah's 25th Birthday
+                        </p>
                       </div>
                       <p className="text-lg font-semibold">
-                        "Instead of asking for gifts, I want to make a difference"
+                        "Instead of asking for gifts, I want to make a
+                        difference"
                       </p>
                     </div>
 
                     <div className="space-y-3">
                       <div className="flex items-center space-x-2">
                         <CheckCircle className="w-5 h-5 text-primary" />
-                        <p className="text-sm text-muted-foreground">Browsed Education NGOs</p>
+                        <p className="text-sm text-muted-foreground">
+                          Browsed Education NGOs
+                        </p>
                       </div>
                       <div className="flex items-center space-x-2">
                         <CheckCircle className="w-5 h-5 text-primary" />
-                        <p className="text-sm text-muted-foreground">Selected school supplies wishlist</p>
+                        <p className="text-sm text-muted-foreground">
+                          Selected school supplies wishlist
+                        </p>
                       </div>
                       <div className="flex items-center space-x-2">
                         <CheckCircle className="w-5 h-5 text-primary" />
-                        <p className="text-sm text-muted-foreground">Donated ₹5,000 for 25 children</p>
+                        <p className="text-sm text-muted-foreground">
+                          Donated ₹5,000 for 25 children
+                        </p>
                       </div>
                     </div>
 
                     <div className="bg-primary/10 rounded-lg p-4">
-                      <p className="text-primary font-semibold mb-2">Impact Created:</p>
+                      <p className="text-primary font-semibold mb-2">
+                        Impact Created:
+                      </p>
                       <p className="text-sm text-muted-foreground">
-                        25 children received complete school supply kits, improving their learning experience
+                        25 children received complete school supply kits,
+                        improving their learning experience
                       </p>
                     </div>
                   </div>
-
                   <div className="relative">
                     <motion.div
                       whileHover={{ scale: 1.05 }}
@@ -181,9 +211,12 @@ const HowItWorks = () => {
                       <p className="text-muted-foreground text-sm mb-4">
                         See the complete donor journey in 2 minutes
                       </p>
-                      <Button variant="outline" size="sm">
-                        Play Video
-                      </Button>
+
+                      <video
+                        controls
+                        className="w-full rounded-xl shadow-lg mb-4"
+                        src="https://9wlpofweqcrbhkau.public.blob.vercel-storage.com/Gift%20for%20a%20cause%20demo%20video/GIFT%20FOR%20CAUSE%20DEMO.mp4"
+                      ></video>
                     </motion.div>
                   </div>
                 </div>
@@ -220,27 +253,43 @@ const HowItWorks = () => {
           >
             <Accordion type="single" collapsible>
               <AccordionItem value="item-1">
-                <AccordionTrigger>How do I know my donation reaches the right people?</AccordionTrigger>
+                <AccordionTrigger>
+                  How do I know my donation reaches the right people?
+                </AccordionTrigger>
                 <AccordionContent>
-                  All our NGO partners are verified and registered. You'll receive regular updates with photos and reports showing exactly how your donation was used and the impact it created.
+                  All our NGO partners are verified and registered. You'll
+                  receive regular updates with photos and reports showing
+                  exactly how your donation was used and the impact it created.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-2">
-                <AccordionTrigger>Can I donate for someone else's special occasion?</AccordionTrigger>
+                <AccordionTrigger>
+                  Can I donate for someone else's special occasion?
+                </AccordionTrigger>
                 <AccordionContent>
-                  Absolutely! You can make donations in honor of friends and family. We'll send them a beautiful certificate and impact report showing the difference made in their name.
+                  Absolutely! You can make donations in honor of friends and
+                  family. We'll send them a beautiful certificate and impact
+                  report showing the difference made in their name.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-3">
-                <AccordionTrigger>Is there a minimum donation amount?</AccordionTrigger>
+                <AccordionTrigger>
+                  Is there a minimum donation amount?
+                </AccordionTrigger>
                 <AccordionContent>
-                  No minimum amount required. Every contribution matters. Items range from ₹50 notebooks to ₹10,000 medical equipment, so there's something for every budget.
+                  No minimum amount required. Every contribution matters. Items
+                  range from ₹50 notebooks to ₹10,000 medical equipment, so
+                  there's something for every budget.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-4">
-                <AccordionTrigger>How quickly will my donation make an impact?</AccordionTrigger>
+                <AccordionTrigger>
+                  How quickly will my donation make an impact?
+                </AccordionTrigger>
                 <AccordionContent>
-                  Most items are delivered within 3-5 business days. You'll receive tracking updates and impact photos once the NGO receives and distributes your donation.
+                  Most items are delivered within 3-5 business days. You'll
+                  receive tracking updates and impact photos once the NGO
+                  receives and distributes your donation.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -277,7 +326,7 @@ const HowItWorks = () => {
               Ready to Make a Difference?
             </h2>
             <p className="text-lg text-muted-foreground">
-              Join thousands of people who have transformed their celebrations 
+              Join thousands of people who have transformed their celebrations
               into opportunities for positive change.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -288,16 +337,14 @@ const HowItWorks = () => {
                 </Link>
               </Button>
               <Button variant="outline" size="lg" asChild>
-                <Link to="/ngo-partners">
-                  Partner with Us
-                </Link>
+                <Link to="/ngo-partners">Partner with Us</Link>
               </Button>
             </div>
           </motion.div>
         </div>
       </section>
     </div>
-  )
-}
+  );
+};
 
-export default HowItWorks
+export default HowItWorks;

@@ -12,14 +12,17 @@ interface WishlistItem {
   name: string;
   price: number;
   qty: number;
+  funded_qty?: number;
 }
 
 interface WishlistFormProps {
   ngo: any;
   onClose: () => void;
+  editingWishlist?: any;
+  onSuccess?: () => void;
 }
 
-export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
+export function WishlistForm({ ngo, onClose, editingWishlist, onSuccess }: WishlistFormProps) {
   const { toast } = useToast();
   const [wishlistData, setWishlistData] = useState({
     title: "",
@@ -39,6 +42,38 @@ export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingWishlist) {
+      setWishlistData({
+        title: editingWishlist.title || "",
+        description: editingWishlist.description || "",
+        target_amount: editingWishlist.target_amount || 0,
+        status: editingWishlist.status || "draft",
+        urgent: editingWishlist.urgent || false,
+        image: editingWishlist.image || "",
+        ngo_name: ngo?.name || "",
+        location: ngo?.location || "",
+        raised_amount: editingWishlist.raised_amount || 0,
+      });
+      
+      // Convert wishlist items to form format
+      if (editingWishlist.wishlist_items && editingWishlist.wishlist_items.length > 0) {
+        const formItems = editingWishlist.wishlist_items.map((item: any) => ({
+          name: item.name || "",
+          price: item.price || 0,
+          qty: item.qty || 0,
+        }));
+        setWishlistItems(formItems);
+      }
+      
+      // Set image preview if editing has an image
+      if (editingWishlist.image) {
+        setImagePreview(editingWishlist.image);
+      }
+    }
+  }, [editingWishlist, ngo]);
 
   // Update target_amount automatically
   useEffect(() => {
@@ -78,7 +113,7 @@ export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
     value: string | number
   ) => {
     const newItems = [...wishlistItems];
-    newItems[index][field] = field === "name" ? value : Number(value);
+    (newItems[index] as any)[field] = field === "name" ? value : Number(value);
     setWishlistItems(newItems);
   };
 
@@ -114,28 +149,54 @@ export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
         imageUrl = await handleImageUpload(imageFile);
       }
 
-      const { data: wishlistCreated, error: wishlistError } = await supabase
-        .from("wishlists")
-        .insert([
-          {
+      let wishlistId;
+      
+      if (editingWishlist) {
+        // Update existing wishlist
+        const { data: wishlistUpdated, error: wishlistError } = await supabase
+          .from("wishlists")
+          .update({
             ...wishlistData,
-            ngo_id: ngo.id,
             image: imageUrl,
-          },
-        ])
-        .select()
-        .single();
+          })
+          .eq("id", editingWishlist.id)
+          .select()
+          .single();
 
-      if (wishlistError) throw wishlistError;
+        if (wishlistError) throw wishlistError;
+        wishlistId = wishlistUpdated.id;
 
-      const wishlistId = wishlistCreated.id;
+        // Delete existing items and insert new ones
+        const { error: deleteItemsError } = await supabase
+          .from("wishlist_items")
+          .delete()
+          .eq("wishlist_id", wishlistId);
+        
+        if (deleteItemsError) throw deleteItemsError;
+      } else {
+        // Create new wishlist
+        const { data: wishlistCreated, error: wishlistError } = await supabase
+          .from("wishlists")
+          .insert([
+            {
+              ...wishlistData,
+              ngo_id: ngo.id,
+              image: imageUrl,
+            },
+          ])
+          .select()
+          .single();
+
+        if (wishlistError) throw wishlistError;
+        wishlistId = wishlistCreated.id;
+      }
 
       const itemsToInsert = wishlistItems.map((item) => ({
         wishlist_id: wishlistId,
         name: item.name,
         price: item.price,
         qty: item.qty,
-        funded_qty: 0,
+        funded_qty: editingWishlist ? item.funded_qty || 0 : 0,
       }));
 
       if (itemsToInsert.length > 0) {
@@ -145,25 +206,32 @@ export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
         if (itemsError) throw itemsError;
       }
 
-      setWishlistData({
-        title: "",
-        description: "",
-        target_amount: 0,
-        status: "draft",
-        urgent: false,
-        image: "",
-        ngo_name: ngo?.name || "",
-        location: ngo?.location || "",
-        raised_amount: 0,
-      });
-      setWishlistItems([]);
-      setImageFile(null);
-      setImagePreview(null);
+      // Reset form only if not editing
+      if (!editingWishlist) {
+        setWishlistData({
+          title: "",
+          description: "",
+          target_amount: 0,
+          status: "draft",
+          urgent: false,
+          image: "",
+          ngo_name: ngo?.name || "",
+          location: ngo?.location || "",
+          raised_amount: 0,
+        });
+        setWishlistItems([]);
+        setImageFile(null);
+        setImagePreview(null);
+      }
 
       toast({
         title: "Success",
-        description: "Wishlist created successfully!",
+        description: editingWishlist ? "Wishlist updated successfully!" : "Wishlist created successfully!",
       });
+      
+      if (onSuccess) {
+        onSuccess();
+      }
       onClose();
     } catch (error) {
       console.error("Error creating wishlist:", error);
@@ -193,7 +261,7 @@ export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
         <X className="h-6 w-6" />
       </button>
       <CardHeader>
-        <CardTitle>Create a Wishlist</CardTitle>
+        <CardTitle>{editingWishlist ? "Edit Wishlist" : "Create a Wishlist"}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Title */}
@@ -224,7 +292,7 @@ export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
 
         {/* Target Amount (live-update) */}
         <div className="grid gap-2">
-          <Label htmlFor="target">Target Amount ($)</Label>
+          <Label htmlFor="target">Target Amount (₹)</Label>
           <Input
             type="number"
             id="target"
@@ -251,7 +319,7 @@ export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
           ></div>
         </div>
         <p className="text-sm text-gray-600">
-          Raised: ${raisedAmount} / ${wishlistData.target_amount}
+          Raised: ₹{raisedAmount} / ₹{wishlistData.target_amount}
         </p>
 
         {/* Urgent */}
@@ -319,6 +387,7 @@ export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
                 }
                 className="flex-1"
               />
+              <Label htmlFor="price">Price</Label>
               <Input
                 type="number"
                 placeholder="Price"
@@ -328,6 +397,7 @@ export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
                 }
                 className="w-24"
               />
+              <Label htmlFor="qty">Qty</Label>
               <Input
                 type="number"
                 placeholder="Qty"
@@ -351,7 +421,7 @@ export function WishlistForm({ ngo, onClose }: WishlistFormProps) {
           disabled={isSubmitting}
           className="w-full"
         >
-          {isSubmitting ? "Creating..." : "Create Wishlist"}
+          {isSubmitting ? (editingWishlist ? "Updating..." : "Creating...") : (editingWishlist ? "Update Wishlist" : "Create Wishlist")}
         </Button>
       </CardContent>
     </Card>

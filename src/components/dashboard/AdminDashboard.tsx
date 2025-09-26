@@ -15,13 +15,19 @@ import {
 import { DollarSign, TrendingUp, Shield, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import DocViewer from "../ui/doc-viewer";
 
 interface PendingNGO {
+  document_url: ReactNode;
   id: string;
   name: string;
   category: string;
   email: string;
   created_at: string;
+  image: string;
+  location: string;
+  established_year: string;
+  website: string;
 }
 
 interface PendingStory {
@@ -52,6 +58,7 @@ export function AdminDashboard() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [stats, setStats] = useState({ totalRaised: 0, totalDonations: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedNGO, setSelectedNGO] = useState<any | null>(null);
 
   const { toast } = useToast();
 
@@ -60,8 +67,10 @@ export function AdminDashboard() {
       try {
         const { data: ngosData, error: ngosError } = await supabase
           .from("ngo")
-          .select("id, name, category, created_at, email")
-          .eq("verified", false);
+          .select("*")
+          .is("verified", null);
+
+        console.log(ngosData);
 
         if (ngosError) throw ngosError;
         setPendingNGOs(ngosData || []);
@@ -116,30 +125,37 @@ export function AdminDashboard() {
     fetchData();
   }, []);
 
-  const handleVerifyNGO = async (ngoId: string) => {
+  const handleVerifyNGO = async (ngoId: string, status: boolean) => {
     try {
       const { error } = await supabase
         .from("ngo")
-        .update({ verified: true })
+        .update({ verified: status })
         .eq("id", ngoId);
+
       if (error) throw error;
 
+      // Remove NGO from pending list
       setPendingNGOs((prev) => prev.filter((ngo) => ngo.id !== ngoId));
 
+      // Insert audit log
       await supabase.from("audit_logs").insert({
         user_id: user?.id,
-        action: "ngo_verified",
+        action: status ? "ngo_approved" : "ngo_rejected",
         entity: "ngo",
-        status: "success",
+        status: status ? "approved" : "rejected",
         details: { ngo_id: ngoId },
       });
 
+      // Show toast depending on action
       toast({
-        title: "NGO Verified",
-        description: "The NGO has been successfully verified.",
+        title: status ? "NGO Approved ✅" : "NGO Rejected ❌",
+        description: status
+          ? "The NGO has been approved successfully."
+          : "The NGO has been rejected.",
         duration: 5000,
       });
-      // Audit Logs
+
+      // Refresh audit logs
       const { data: logsData, error: logsError } = await supabase
         .from("audit_logs")
         .select("id, action, entity, status, created_at, users(name)")
@@ -147,6 +163,7 @@ export function AdminDashboard() {
         .limit(20);
 
       if (logsError) throw logsError;
+
       setAuditLogs(
         (logsData || []).map((log: any) => ({
           ...log,
@@ -259,6 +276,14 @@ export function AdminDashboard() {
           </p>
         </div>
 
+        {selectedNGO && (
+          <DocViewer
+            docUrl={selectedNGO?.document_url}
+            open={selectedNGO}
+            onClose={() => setSelectedNGO(null)}
+          />
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {statsCards.map((stat, index) => (
@@ -294,42 +319,126 @@ export function AdminDashboard() {
           <TabsList>
             <TabsTrigger value="ngos">NGO Approvals</TabsTrigger>
             <TabsTrigger value="stories">Story Approvals</TabsTrigger>
-            <TabsTrigger value="audit">Audit Logs</TabsTrigger>
           </TabsList>
 
           {/* NGO Approvals */}
           <TabsContent value="ngos">
             <Card>
               <CardHeader>
-                <CardTitle>Pending NGOs</CardTitle>
+                <CardTitle>NGO Approvals</CardTitle>
+                <p className="text-gray-500 text-sm">
+                  Review NGO details and documents before approving or
+                  rejecting.
+                </p>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Logo</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead />
+                      <TableHead>Location</TableHead>
+                      <TableHead>Established</TableHead>
+                      <TableHead>Website</TableHead>
+                      <TableHead>Documents</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pendingNGOs.map((ngo) => (
-                      <TableRow key={ngo.id}>
-                        <TableCell>{ngo.name}</TableCell>
+                      <TableRow key={ngo.id} className="hover:bg-gray-50">
+                        {/* NGO Image */}
+                        <TableCell>
+                          {ngo.image ? (
+                            <img
+                              src={ngo.image}
+                              alt={ngo.name}
+                              className="h-12 w-12 rounded-full object-cover border"
+                            />
+                          ) : (
+                            <span className="text-gray-400 text-xs">
+                              No Image
+                            </span>
+                          )}
+                        </TableCell>
+
+                        {/* NGO Info */}
+                        <TableCell className="font-semibold">
+                          {ngo.name}
+                        </TableCell>
                         <TableCell>{ngo.category}</TableCell>
                         <TableCell>{ngo.email}</TableCell>
+                        <TableCell>{ngo.location}</TableCell>
+                        <TableCell>{ngo.established_year}</TableCell>
                         <TableCell>
-                          {new Date(ngo.created_at).toLocaleDateString()}
+                          {ngo.website ? (
+                            <a
+                              href={ngo.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline text-sm"
+                            >
+                              {ngo.website.replace(/^https?:\/\//, "")}
+                            </a>
+                          ) : (
+                            <span className="text-gray-400 text-xs">
+                              No Website
+                            </span>
+                          )}
                         </TableCell>
+
+                        {/* NGO Documents */}
                         <TableCell>
-                          <Button
-                            size="sm"
-                            onClick={() => handleVerifyNGO(ngo.id)}
-                          >
-                            Verify
-                          </Button>
+                          {ngo?.document_url ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedNGO(ngo)}
+                            >
+                              View Documents
+                            </Button>
+                          ) : (
+                            <p> No Documents Found</p>
+                          )}
+                        </TableCell>
+
+                        {/* Approve / Reject */}
+                        <TableCell>
+                          <div className="flex gap-2 justify-center">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    "Are you sure you want to approve and verify this NGO?"
+                                  )
+                                ) {
+                                  handleVerifyNGO(ngo.id, true);
+                                }
+                              }}
+                            >
+                              Approve
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    "Are you sure you want to reject this NGO?"
+                                  )
+                                ) {
+                                  handleVerifyNGO(ngo.id, false);
+                                }
+                              }}
+                            >
+                              Reject
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -404,7 +513,7 @@ export function AdminDashboard() {
                         <TableCell>{log.status}</TableCell>
                         <TableCell>{log.users?.name}</TableCell>
                         <TableCell>
-                          {new Date(log.created_at).toLocaleString()}
+                          {new Date(log.created_at).toLocaleDateString()}
                         </TableCell>
                       </TableRow>
                     ))}
