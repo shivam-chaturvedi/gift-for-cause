@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Heart, Users, Globe, Award, MapPin, Info } from "lucide-react";
+import { Heart, Users, Globe, Award, MapPin, Info, CheckCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 
 type NGO = {
@@ -16,6 +17,7 @@ type NGO = {
   website?: string;
   email?: string;
   phone?: string;
+  has_tax_certificates?: boolean;
   stats?: {
     lives_impacted?: string;
     states_covered?: string;
@@ -108,15 +110,23 @@ export function TrustedPartnersSection() {
                         <h3 className="font-semibold text-card-foreground group-hover:text-primary transition-colors">
                           {ngo.name}
                         </h3>
-                        {ngo.verified && (
-                          <motion.div
-                            whileHover={{ scale: 1.1 }}
-                            className="flex items-center space-x-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs"
-                          >
-                            <Award className="w-3 h-3" />
-                            <span>Verified</span>
-                          </motion.div>
-                        )}
+                        <div className="flex flex-col gap-1">
+                          {ngo.verified && (
+                            <motion.div
+                              whileHover={{ scale: 1.1 }}
+                              className="flex items-center space-x-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs"
+                            >
+                              <Award className="w-3 h-3" />
+                              <span>Verified</span>
+                            </motion.div>
+                          )}
+                          {ngo.has_tax_certificates && (
+                            <Badge className="bg-blue-600 text-white text-xs">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              80G/12A
+                            </Badge>
+                          )}
+                        </div>
                       </div>
 
                       {ngo.category && (

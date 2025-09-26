@@ -26,6 +26,10 @@ interface Wishlist {
   raised_amount: number;
   image: string;
   urgent?: boolean;
+  ngo_id?: {
+    verified: boolean;
+    has_tax_certificates?: boolean;
+  };
 }
 
 const BrowseWishlists = () => {
@@ -41,7 +45,7 @@ const BrowseWishlists = () => {
       const { data, error } = await supabase
         .from("wishlists")
         .select(
-          "id, title, description, ngo_name, location, target_amount, raised_amount, image, urgent, ngo_id(verified)"
+          "id, title, description, ngo_name, location, target_amount, raised_amount, image, urgent, ngo_id(verified, has_tax_certificates)"
         );
 
       if (error) {
@@ -167,7 +171,10 @@ const BrowseWishlists = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
                   >
-                    <WishlistCard {...wishlist} />
+                    <WishlistCard 
+                      {...wishlist} 
+                      ngo_has_tax_certificates={wishlist.ngo_id?.has_tax_certificates || false}
+                    />
                   </motion.div>
                 ))}
               </motion.div>

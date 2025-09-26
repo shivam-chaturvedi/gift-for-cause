@@ -21,6 +21,7 @@ interface NGO {
   email?: string
   image?: string
   stats?: Record<string, string>
+  has_tax_certificates?: boolean
 }
 
 const NGOProfile = () => {
@@ -48,7 +49,7 @@ const NGOProfile = () => {
         // Fetch wishlists linked to this NGO
         const { data: wishlistData, error: wishlistError } = await supabase
           .from("wishlists")
-          .select("*")
+          .select("*, ngo!inner(has_tax_certificates)")
           .eq("ngo_id", id)
 
         if (wishlistError) throw wishlistError
@@ -112,6 +113,12 @@ const NGOProfile = () => {
                   <Badge className="bg-success text-success-foreground">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     Verified NGO
+                  </Badge>
+                )}
+                {ngo.has_tax_certificates && (
+                  <Badge className="bg-blue-600 text-white">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    80G/12A Certified
                   </Badge>
                 )}
                 {ngo.category && (
@@ -206,7 +213,11 @@ const NGOProfile = () => {
               {wishlists.length > 0 ? (
                 <div className="grid md:grid-cols-2 gap-6">
                   {wishlists.map((wishlist) => (
-                    <WishlistCard key={wishlist.id} {...wishlist} />
+                    <WishlistCard 
+                      key={wishlist.id} 
+                      {...wishlist} 
+                      ngo_has_tax_certificates={wishlist.ngo?.has_tax_certificates || false}
+                    />
                   ))}
                 </div>
               ) : (

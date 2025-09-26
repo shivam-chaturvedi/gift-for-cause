@@ -16,7 +16,8 @@ export function HeroSection() {
       // 1. Count of NGOs
       const { count: ngoCount, error: ngoError } = await supabase
         .from("ngo")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("verified", true);
 
       if (ngoError) console.error("NGO fetch error:", ngoError);
       else setNgoPartners(ngoCount || 0);

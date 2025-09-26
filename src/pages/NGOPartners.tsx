@@ -149,14 +149,24 @@ const NGOPartners = () => {
                     alt={ngo.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    {ngo.verified && (
-                      <Badge className="bg-success text-success-foreground">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Verified
-                      </Badge>
+                  <div className="absolute top-4 right-4 flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      {ngo.verified && (
+                        <Badge className="bg-success text-success-foreground">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Verified
+                        </Badge>
+                      )}
+                      {ngo.has_tax_certificates && (
+                        <Badge className="bg-blue-600 text-white">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          80G/12A
+                        </Badge>
+                      )}
+                    </div>
+                    {ngo.category && (
+                      <Badge variant="secondary">{ngo.category}</Badge>
                     )}
-                    <Badge variant="secondary">{ngo.category}</Badge>
                   </div>
                 </div>
 

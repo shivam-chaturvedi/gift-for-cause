@@ -17,6 +17,10 @@ interface Wishlist {
   raised_amount: number;
   image: string;
   urgent?: boolean;
+  ngo_id?: {
+    verified: boolean;
+    has_tax_certificates?: boolean;
+  };
 }
 
 export function FeaturedWishlistsSection() {
@@ -27,7 +31,7 @@ export function FeaturedWishlistsSection() {
     async function fetchWishlists() {
       const { data, error } = await supabase
         .from("wishlists")
-        .select(`*,ngo_id(verified)`)
+        .select(`*,ngo_id(verified, has_tax_certificates)`)
         .order("created_at", { ascending: false })
         .limit(10);
 
@@ -96,6 +100,7 @@ export function FeaturedWishlistsSection() {
                 raised_amount={wishlist.raised_amount}
                 image={wishlist.image}
                 urgent={wishlist.urgent}
+                ngo_has_tax_certificates={wishlist.ngo_id?.has_tax_certificates || false}
               />
             ))}
           </InfiniteCarousel>

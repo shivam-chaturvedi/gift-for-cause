@@ -55,6 +55,9 @@ interface WishlistWithItems {
     qty: number;
     funded_qty: number;
   }>;
+  ngo: {
+    has_tax_certificates?: boolean;
+  };
 }
 
 interface DonationWithDetails {
@@ -222,7 +225,7 @@ export function NGODashboard() {
         // Wishlists
         const { data: wishlistData, error: wishlistError } = await supabase
           .from("wishlists")
-          .select("*, wishlist_items(*)")
+          .select("*, wishlist_items(*), ngo!inner(has_tax_certificates)")
           .eq("ngo_id", ngo.id);
         if (wishlistError) throw wishlistError;
 
@@ -566,6 +569,7 @@ export function NGODashboard() {
                   isNGODashboard={true}
                   wishlist_items={wishlist.wishlist_items}
                   onEdit={handleEditWishlist}
+                  ngo_has_tax_certificates={wishlist.ngo?.has_tax_certificates || false}
                 />
               ))}
             </div>

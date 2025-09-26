@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Heart, MapPin, Users, Trash2, Package, ChevronDown, ChevronUp, Edit } from "lucide-react";
+import { Heart, MapPin, Users, Trash2, Package, ChevronDown, ChevronUp, Edit, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,7 @@ interface WishlistCardProps {
   }>;
   onManageItems?: (wishlistId: string) => void;
   onEdit?: (wishlistId: string) => void;
+  ngo_has_tax_certificates?: boolean;
 }
 
 export function WishlistCard({
@@ -56,6 +57,7 @@ export function WishlistCard({
   wishlist_items = [],
   onManageItems,
   onEdit,
+  ngo_has_tax_certificates = false,
 }: WishlistCardProps) {
   const [showItems, setShowItems] = useState(false);
   const progress =
@@ -151,15 +153,25 @@ export function WishlistCard({
         </div>
 
         {/* NGO Info */}
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center space-x-1 text-muted-foreground">
-            <Users className="w-4 h-4" />
-            <span>{ngo_name}</span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center space-x-1 text-muted-foreground">
+              <Users className="w-4 h-4" />
+              <span>{ngo_name}</span>
+            </div>
+            <div className="flex items-center space-x-1 text-muted-foreground">
+              <MapPin className="w-4 h-4" />
+              <span>{location}</span>
+            </div>
           </div>
-          <div className="flex items-center space-x-1 text-muted-foreground">
-            <MapPin className="w-4 h-4" />
-            <span>{location}</span>
-          </div>
+          {ngo_has_tax_certificates && (
+            <div className="flex justify-start">
+              <Badge className="bg-blue-600 text-white text-xs">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                80G/12A Certified
+              </Badge>
+            </div>
+          )}
         </div>
 
         {/* Progress */}
