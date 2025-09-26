@@ -68,7 +68,7 @@ export function WishlistCard({
     <motion.div
       whileHover={{ y: -8 }}
       transition={{ duration: 0.3 }}
-      className="group relative bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-strong border border-border/50"
+      className="group relative bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-strong border border-border/50 h-[500px] flex flex-col"
     >
       {/* Top Right Badges */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
@@ -142,7 +142,7 @@ export function WishlistCard({
       </div>
 
       {/* Content */}
-      <div className="p-6 space-y-4">
+      <div className="p-6 space-y-4 flex-1 flex flex-col">
         <div className="space-y-2">
           <h3 className="text-lg font-semibold text-card-foreground group-hover:text-primary transition-colors">
             {title}
@@ -199,7 +199,7 @@ export function WishlistCard({
         </div>
 
         {/* Actions */}
-        <div className="flex space-x-2 pt-2">
+        <div className="flex space-x-2 pt-2 mt-auto">
           {isNGODashboard ? (
             <>
               <Button 
@@ -245,7 +245,7 @@ export function WishlistCard({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-4 space-y-2 border-t pt-4"
+            className="mt-4 space-y-2 border-t pt-4 max-h-32 overflow-y-auto"
           >
             <h4 className="text-sm font-semibold text-foreground mb-2">Wishlist Items</h4>
             {wishlist_items.map((item) => (

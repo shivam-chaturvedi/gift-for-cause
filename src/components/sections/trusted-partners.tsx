@@ -85,8 +85,8 @@ export function TrustedPartnersSection() {
               className="group cursor-pointer"
             >
               <Link to={`/ngo/${ngo.id}`}>
-                <div className="bg-card rounded-2xl p-6 shadow-soft hover:shadow-strong transition-all duration-300 border border-border/50 backdrop-blur-sm">
-                  <div className="flex items-start space-x-4">
+                <div className="bg-card rounded-2xl p-6 shadow-soft hover:shadow-strong transition-all duration-300 border border-border/50 backdrop-blur-sm h-[200px] flex flex-col">
+                  <div className="flex items-start space-x-4 flex-1">
                     {/* Logo/Image */}
                     <motion.div
                       whileHover={{ scale: 1.1 }}
@@ -105,7 +105,7 @@ export function TrustedPartnersSection() {
                     </motion.div>
 
                     {/* Content */}
-                    <div className="flex-1 space-y-2">
+                    <div className="flex-1 space-y-2 flex flex-col">
                       <div className="flex items-start justify-between">
                         <h3 className="font-semibold text-card-foreground group-hover:text-primary transition-colors">
                           {ngo.name}
@@ -143,7 +143,7 @@ export function TrustedPartnersSection() {
                         </p>
                       )}
 
-                      <div className="flex flex-col text-sm space-y-1">
+                      <div className="flex flex-col text-sm space-y-1 mt-auto">
                         {ngo.stats?.lives_impacted && (
                           <span>Impact: {ngo.stats.lives_impacted}</span>
                         )}
