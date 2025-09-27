@@ -259,15 +259,15 @@ CREATE POLICY "Admins can view audit logs" ON audit_logs
 
 -- Insert admin user
 INSERT INTO users (id, name, email, role) VALUES 
-('550e8400-e29b-41d4-a716-446655440000', 'Admin User', 'admin@giftforacause.com', 'admin');
+('550e8400-e29b-41d4-a716-446655440000', 'Admin User', 'giftforacause@myyahoo.com', 'admin');
 
 -- Insert sample NGOs
-INSERT INTO ngos (id, name, reg_no, mission, category, logo, verified, slug, description, website, contact_email, contact_phone) VALUES
-('550e8400-e29b-41d4-a716-446655440001', 'Clean Water Initiative', 'CWI2024001', 'Providing clean drinking water to rural communities', 'Environment', '/api/placeholder/150/150', true, 'clean-water-initiative', 'We work to provide sustainable clean water solutions to underserved communities across the country.', 'https://cleanwater.org', 'contact@cleanwater.org', '+1-555-0101'),
-('550e8400-e29b-41d4-a716-446655440002', 'Education for All', 'EFA2024002', 'Ensuring quality education for every child', 'Education', '/api/placeholder/150/150', true, 'education-for-all', 'Dedicated to breaking barriers to education and creating opportunities for children from marginalized communities.', 'https://educationforall.org', 'info@educationforall.org', '+1-555-0102'),
-('550e8400-e29b-41d4-a716-446655440003', 'Healthcare Heroes', 'HH2024003', 'Providing medical care to remote areas', 'Healthcare', '/api/placeholder/150/150', true, 'healthcare-heroes', 'Bringing essential healthcare services to remote and underserved communities through mobile clinics and telemedicine.', 'https://healthcareheroes.org', 'hello@healthcareheroes.org', '+1-555-0103'),
-('550e8400-e29b-41d4-a716-446655440004', 'Women Empowerment Network', 'WEN2024004', 'Empowering women through skill development', 'Women Empowerment', '/api/placeholder/150/150', true, 'women-empowerment-network', 'Supporting women''s economic independence through vocational training, microfinance, and community support programs.', 'https://womenempower.org', 'connect@womenempower.org', '+1-555-0104'),
-('550e8400-e29b-41d4-a716-446655440005', 'Solar Light Project', 'SLP2024005', 'Bringing renewable energy to rural homes', 'Environment', '/api/placeholder/150/150', true, 'solar-light-project', 'Providing solar-powered lighting solutions to rural households, improving safety and enabling children to study after dark.', 'https://solarlight.org', 'info@solarlight.org', '+1-555-0105');
+INSERT INTO ngos (id, name, reg_no, mission, category, logo, verified, slug, description, website, contact_email) VALUES
+('550e8400-e29b-41d4-a716-446655440001', 'Clean Water Initiative', 'CWI2024001', 'Providing clean drinking water to rural communities', 'Environment', '/api/placeholder/150/150', true, 'clean-water-initiative', 'We work to provide sustainable clean water solutions to underserved communities across the country.', 'https://cleanwater.org', 'contact@cleanwater.org'),
+('550e8400-e29b-41d4-a716-446655440002', 'Education for All', 'EFA2024002', 'Ensuring quality education for every child', 'Education', '/api/placeholder/150/150', true, 'education-for-all', 'Dedicated to breaking barriers to education and creating opportunities for children from marginalized communities.', 'https://educationforall.org', 'info@educationforall.org'),
+('550e8400-e29b-41d4-a716-446655440003', 'Healthcare Heroes', 'HH2024003', 'Providing medical care to remote areas', 'Healthcare', '/api/placeholder/150/150', true, 'healthcare-heroes', 'Bringing essential healthcare services to remote and underserved communities through mobile clinics and telemedicine.', 'https://healthcareheroes.org', 'hello@healthcareheroes.org'),
+('550e8400-e29b-41d4-a716-446655440004', 'Women Empowerment Network', 'WEN2024004', 'Empowering women through skill development', 'Women Empowerment', '/api/placeholder/150/150', true, 'women-empowerment-network', 'Supporting women''s economic independence through vocational training, microfinance, and community support programs.', 'https://womenempower.org', 'connect@womenempower.org'),
+('550e8400-e29b-41d4-a716-446655440005', 'Solar Light Project', 'SLP2024005', 'Bringing renewable energy to rural homes', 'Environment', '/api/placeholder/150/150', true, 'solar-light-project', 'Providing solar-powered lighting solutions to rural households, improving safety and enabling children to study after dark.', 'https://solarlight.org', 'info@solarlight.org');
 
 -- Insert sample wishlists
 INSERT INTO wishlists (id, ngo_id, title, status, occasion_tags, description, target_amount, deadline, featured) VALUES

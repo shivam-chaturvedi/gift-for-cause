@@ -16,7 +16,6 @@ type NGO = {
   image?: string;
   website?: string;
   email?: string;
-  phone?: string;
   has_tax_certificates?: boolean;
   stats?: {
     lives_impacted?: string;

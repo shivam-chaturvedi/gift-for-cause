@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
+import { sendContactFormEmail } from "@/lib/mailer";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,26 +33,53 @@ const Contact = () => {
     setSuccess(null);
     setError(null);
 
-    const { data, error } = await supabase
-      .from("contact_messages")
-      .insert([formData]);
+    try {
+      // Send email using mailer
+      const emailResult = await sendContactFormEmail(
+        formData.name,
+        formData.email,
+        formData.subject,
+        formData.message
+      );
 
-    setLoading(false);
+      if (emailResult.success) {
+        // Also save to database for record keeping
+        const { error: dbError } = await supabase
+          .from("contact_messages")
+          .insert([formData]);
 
-    if (error) {
-      setError(error.message);
-    } else {
+        if (dbError) {
+          console.warn("Failed to save to database:", dbError.message);
+        }
+
+        toast({
+          title: "Message Sent",
+          description: "Thank you for reaching out! We'll get back to you soon.",
+        });
+        setSuccess("Thank you for reaching out! We'll get back to you soon.");
+        setFormData({
+          name: "",
+          email: "",
+          subject: "",
+          message: "",
+        });
+      } else {
+        setError(emailResult.error || "Failed to send message. Please try again.");
+        toast({
+          title: "Error",
+          description: emailResult.error || "Failed to send message. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      setError(error.message || "An unexpected error occurred. Please try again.");
       toast({
-        title: "Message Sent",
-        description: "Thank you for reaching out! We'll get back to you soon.",
+        title: "Error",
+        description: error.message || "An unexpected error occurred. Please try again.",
+        variant: "destructive",
       });
-      setSuccess("Thank you for reaching out! We'll get back to you soon.");
-      setFormData({
-        name: "",
-        email: "",
-        subject: "",
-        message: "",
-      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -129,25 +157,27 @@ const Contact = () => {
                   <div>
                     <p className="font-medium">Email</p>
                     <p className="text-muted-foreground">
-                      hello@giftforacause.org
+                      giftforacause@myyahoo.com
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <Phone className="w-6 h-6 text-primary" />
-                  <div>
-                    <p className="font-medium">Phone</p>
-                    <p className="text-muted-foreground">+91 98765 43210</p>
-                  </div>
+                <div className="bg-muted/50 rounded-lg p-6">
+                  <h3 className="font-semibold mb-2">Response Time</h3>
+                  <p className="text-sm text-muted-foreground">
+                    We typically respond to all inquiries within 24-48 hours during business days. 
+                    For urgent matters, please mention "URGENT" in your subject line.
+                  </p>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <MapPin className="w-6 h-6 text-primary" />
-                  <div>
-                    <p className="font-medium">Address</p>
-                    <p className="text-muted-foreground">
-                      Mumbai, Maharashtra, India
-                    </p>
-                  </div>
+                <div className="bg-primary/5 rounded-lg p-6">
+                  <h3 className="font-semibold mb-2">Privacy & Security</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Your messages are handled with strict confidentiality. We do not share your 
+                    personal information with third parties. Read our{" "}
+                    <a href="/privacy" className="text-primary underline hover:no-underline">
+                      Privacy Policy
+                    </a>{" "}
+                    for more details.
+                  </p>
                 </div>
               </div>
             </div>

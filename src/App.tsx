@@ -19,6 +19,7 @@ import SuccessStories from "./pages/SuccessStories";
 import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
 import About from "./pages/About";
+import Privacy from "./pages/Privacy";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Donate from "./pages/Donate";
@@ -50,6 +51,7 @@ const App = () => (
                   <Route path="/faq" element={<FAQ />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/about" element={<About />} />
+                  <Route path="/privacy" element={<Privacy />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/donate/:id?" element={<Donate />} />

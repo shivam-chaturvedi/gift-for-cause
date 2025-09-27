@@ -16,10 +16,7 @@ const footerLinks = {
     { name: "Privacy Policy", href: "/privacy" },
   ],
   social: [
-    { name: "Facebook", href: "#", icon: Facebook },
-    { name: "Twitter", href: "#", icon: Twitter },
-    { name: "Instagram", href: "#", icon: Instagram },
-    { name: "Email", href: "mailto:hello@giftforacause.org", icon: Mail },
+    { name: "Email", href: "mailto:giftforacause@myyahoo.com", icon: Mail },
   ],
 }
 

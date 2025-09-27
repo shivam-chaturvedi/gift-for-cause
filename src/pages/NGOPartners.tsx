@@ -198,7 +198,6 @@ const NGOPartners = () => {
                     <div>Active Wishlists: {ngo.activeWishlists || 0}</div>
                     <div>Established Year: {ngo.established_year || "N/A"}</div>
                     <div>Email: {ngo.email}</div>
-                    {ngo.phone && <div>Phone: {ngo.phone}</div>}
                     {ngo.website && (
                       <div>
                         Website:{" "}

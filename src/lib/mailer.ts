@@ -213,3 +213,45 @@ export const sendNGODonationNotificationEmail = async (
   return sendEmail({ to: email, subject, text, html });
 };
 
+/**
+ * Send contact form email to admin
+ * @param name - Contact person's name
+ * @param email - Contact person's email
+ * @param subject - Email subject
+ * @param message - Contact message
+ */
+export const sendContactFormEmail = async (
+  name: string,
+  email: string,
+  subject: string,
+  message: string
+): Promise<EmailResponse> => {
+  const emailSubject = `Contact Form: ${subject}`;
+  const text = `New contact form submission from ${name} (${email})\n\nSubject: ${subject}\n\nMessage:\n${message}\n\n---\nThis message was sent via the Gift for Cause contact form.`;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #2563eb;">New Contact Form Submission</h1>
+      <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #374151;">Contact Details</h3>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Subject:</strong> ${subject}</p>
+      </div>
+      <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #2563eb;">Message</h3>
+        <p style="white-space: pre-wrap;">${message}</p>
+      </div>
+      <p style="color: #6b7280; font-size: 14px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+        This message was sent via the Gift for Cause contact form.
+      </p>
+    </div>
+  `;
+
+  return sendEmail({ 
+    to: 'giftforacause@myyahoo.com', 
+    subject: emailSubject, 
+    text, 
+    html 
+  });
+};
